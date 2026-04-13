@@ -15,7 +15,7 @@ export default function Quiz() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [time, setTime] = useState(15);
   const [loading, setLoading] = useState(true);
-  const [result, setResult] = useState(null);
+const [result, _setResult] = useState(null);
 
   const timerRef = useRef(null);
 
@@ -28,7 +28,7 @@ export default function Quiz() {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await api.get('/quiz/questions');
+        const _res = await axios.get('/quiz/questions');
         setQuestions(res.data.data || []);
 
         const saved = JSON.parse(localStorage.getItem('quiz-progress'));
