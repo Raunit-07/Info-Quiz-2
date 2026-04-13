@@ -1,23 +1,16 @@
 import axios from "axios";
 
-// ✅ Base URL (safe fallback)
-const API_URL = process.env.REACT_APP_API_URL || null;
 
-const getBaseURL = () => {
-  if (API_URL) return `${API_URL.replace(/\/$/, '')}/api`;
-  if (process.env.NODE_ENV === 'production') return '/api';
-  return 'http://localhost:5000/api';
-};
 
 const api = axios.create({
-  baseURL: getBaseURL(),
-  timeout: 10000, // 🔥 prevent infinite loading (10s)
+  baseURL: "https://quiz-app-backend.onrender.com/api",
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// ✅ REQUEST INTERCEPTOR (attach token)
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
