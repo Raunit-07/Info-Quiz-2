@@ -1,10 +1,14 @@
-import express from 'express';
-import cors from 'cors';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
+
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db from './db.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,12 +19,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static('../client/build'));
 }
 
-// ================= AUTH =================
 
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
@@ -92,7 +94,6 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// ================= MIDDLEWARE =================
 
 function verifyToken(req, res, next) {
   const header = req.headers['authorization'];
@@ -110,7 +111,6 @@ function verifyToken(req, res, next) {
   }
 }
 
-// ================= QUIZ =================
 
 const QUESTIONS = [
   {
@@ -267,5 +267,5 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
