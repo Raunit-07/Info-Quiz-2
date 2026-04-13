@@ -26,28 +26,30 @@ const [result, _setResult] = useState(null);
   }, [authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const _res = await axios.get('/quiz/questions');
-        setQuestions(res.data.data || []);
+  const fetchQuestions = async () => {
+    try {
+      const res = await api.get("/quiz"); // ✅ use api instead of axios
 
-        const saved = JSON.parse(localStorage.getItem('quiz-progress'));
-        if (saved) {
-          setCurrent(saved.current);
-          setAnswers(saved.answers);
-        }
-      } catch (err) {
-        console.error('Error fetching questions:', err);
-        logout();
-      } finally {
-        setLoading(false);
+      setQuestions(res.data.data || []);
+
+      const saved = JSON.parse(localStorage.getItem('quiz-progress'));
+      if (saved) {
+        setCurrent(saved.current);
+        setAnswers(saved.answers);
       }
-    };
 
-    if (isAuthenticated) {
-      fetchQuestions();
+    } catch (err) {
+      console.error('Error fetching questions:', err);
+      logout();
+    } finally {
+      setLoading(false);
     }
-  }, [isAuthenticated, logout]);
+  };
+
+  if (isAuthenticated) {
+    fetchQuestions(); // 
+  }
+}, [isAuthenticated, logout]);
 
   const handleNext = useCallback(() => {
     setSelected(null);
