@@ -15,7 +15,7 @@ export default function Quiz() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [time, setTime] = useState(15);
   const [loading, setLoading] = useState(true);
-const [result, _setResult] = useState(null);
+  const [result] = useState(null);
 
   const timerRef = useRef(null);
 
@@ -105,7 +105,7 @@ const [result, _setResult] = useState(null);
 
   const handleSubmit = async () => {
     try {
-      const res = await api.post('/quiz/submit', { answers });
+      await api.post('/quiz/submit', { answers });
       localStorage.removeItem('quiz-progress');
       // Redirect to leaderboard after quiz completion
       navigate('/leaderboard');
