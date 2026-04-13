@@ -53,7 +53,8 @@ export default function Register() {
     navigate('/quiz');
   } catch (err) {
     console.log("ERROR:", err.response?.data || err.message);
-    setError(err.response?.data || 'Registration failed. Try again.');
+    const errorMessage = err.response?.data?.error || err.response?.data || 'Registration failed. Try again.';
+    setError(typeof errorMessage === 'string' ? errorMessage : 'Registration failed. Try again.');
   } finally {
     setLoading(false);
   }

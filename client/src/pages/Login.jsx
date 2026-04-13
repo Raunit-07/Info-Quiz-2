@@ -39,7 +39,8 @@ export default function Login() {
       signIn(res.data.token);
       navigate('/quiz');
     } catch (err) {
-      setError(err.response?.data || 'Login failed. Please try again.');
+      const errorMessage = err.response?.data?.error || err.response?.data || 'Login failed. Please try again.';
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
