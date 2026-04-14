@@ -552,7 +552,7 @@ body {
 /* RESPONSIVE DESIGN */
 @media (max-width: 600px) {
   .quiz-page {
-    padding: 15px;
+    padding: 30px 15px 20px;
   }
 
   .quiz-title {
@@ -560,7 +560,13 @@ body {
   }
 
   .quiz-card {
-    padding: 25px;
+    padding: 20px;
+    min-height: auto;
+  }
+
+  .card-front,
+  .card-back {
+    padding: 20px;
   }
 
   .question {
