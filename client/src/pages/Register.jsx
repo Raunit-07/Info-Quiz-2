@@ -6,7 +6,7 @@ import '../App.css';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, signIn, loading: authLoading } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -49,10 +49,12 @@ export default function Register() {
 
     console.log("Response:", res.data);
 
-    navigate('/');
+    signIn(res.data.token);
+    navigate('/quiz');
   } catch (err) {
     console.log("ERROR:", err.response?.data || err.message);
-    setError(err.response?.data || 'Registration failed. Try again.');
+    const errorMessage = err.response?.data?.error || err.response?.data || 'Registration failed. Try again.';
+    setError(typeof errorMessage === 'string' ? errorMessage : 'Registration failed. Try again.');
   } finally {
     setLoading(false);
   }
@@ -60,54 +62,61 @@ export default function Register() {
 
   return (
     <div className="login-page">
-      <div className="login-card">
-        <h3 className="back" onClick={() => navigate('/')}>← Registration</h3>
+      {authLoading ? (
+        <div className="login-card">
+          <h2>Checking authentication...</h2>
+          <p>Please wait while we verify your credentials.</p>
+        </div>
+      ) : (
+        <div className="login-card">
+          <h3 className="back" onClick={() => navigate('/')}>← Registration</h3>
 
-        <h2>Create a new account</h2>
+          <h2>Create a new account</h2>
 
-        <input
-          type="text"
-          placeholder="Enter Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Enter Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
 
-        <input
-          type="password"
-          placeholder="Enter Password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            setStrength(checkStrength(e.target.value));
-          }}
-        />
+          <input
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setStrength(checkStrength(e.target.value));
+            }}
+          />
 
-        {password && (
-          <p className={`strength ${strength.toLowerCase()}`}>{strength}</p>
-        )}
+          {password && (
+            <p className={`strength ${strength.toLowerCase()}`}>{strength}</p>
+          )}
 
-        <input
-          type="password"
-          placeholder="Repeat Password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Repeat Password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
 
-        {confirm && password !== confirm && (
-          <p className="error">Passwords do not match</p>
-        )}
+          {confirm && password !== confirm && (
+            <p className="error">Passwords do not match</p>
+          )}
 
-        {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
 
-        <button className="login-btn" onClick={handleRegister} disabled={loading}>
-          {loading ? 'Registering...' : 'Register'}
-        </button>
+          <button className="login-btn" onClick={handleRegister} disabled={loading}>
+            {loading ? 'Registering...' : 'Register'}
+          </button>
 
-        <p className="toggle">
-          Already have an account?
-          <span onClick={() => navigate('/')}> Login</span>
-        </p>
-      </div>
+          <p className="toggle">
+            Already have an account?
+            <span onClick={() => navigate('/')}> Login</span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

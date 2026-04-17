@@ -28,7 +28,7 @@ export default function Quiz() {
   useEffect(() => {
   const fetchQuestions = async () => {
     try {
-      const res = await api.get("/quiz"); // ✅ use api instead of axios
+      const res = await api.get("/quiz/questions"); // ✅ correct endpoint
 
       setQuestions(res.data.data || []);
 

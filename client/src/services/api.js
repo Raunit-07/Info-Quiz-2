@@ -1,14 +1,17 @@
 import axios from "axios";
 
-
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://quiz-app-backend.onrender.com/api",
+  baseURL: "https://quiz-app-production-61ca.up.railway.app/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+export default api;
+
 
 
 api.interceptors.request.use(
