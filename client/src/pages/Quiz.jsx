@@ -1,204 +1,230 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import Navbar from '../components/Navbar';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function Quiz() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, loading: authLoading, logout } = useAuth();
+
+  const { category, mode } = location.state || {};
+
+  const QUESTION_TIME = 15;
 
   const [questions, setQuestions] = useState([]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [selected, setSelected] = useState(null);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [time, setTime] = useState(15);
+  const [time, setTime] = useState(QUESTION_TIME);
   const [loading, setLoading] = useState(true);
-  const [result] = useState(null);
 
   const timerRef = useRef(null);
 
+  // ✅ Redirect safety
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      navigate('/');
+      navigate("/login");
     }
-  }, [authLoading, isAuthenticated, navigate]);
 
+    if (!category) {
+      navigate("/dashboard");
+    }
+  }, [authLoading, isAuthenticated, category, navigate]);
+
+  // ✅ Shuffle helper
+  const shuffleArray = useCallback((arr) => {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }, []);
+
+  // ✅ Fetch Questions
   useEffect(() => {
-  const fetchQuestions = async () => {
-    try {
-      const res = await api.get("/quiz/questions"); // ✅ correct endpoint
+    const fetchQuestions = async () => {
+      try {
+        const res = await api.get(`/quiz/questions?category=${category}`);
 
-      setQuestions(res.data.data || []);
+        let fetched = res.data.data || [];
 
-      const saved = JSON.parse(localStorage.getItem('quiz-progress'));
-      if (saved) {
-        setCurrent(saved.current);
-        setAnswers(saved.answers);
+        if (!fetched.length) {
+          setQuestions([]);
+          return;
+        }
+
+        // Shuffle questions
+        fetched = shuffleArray(fetched);
+
+        // Shuffle options
+        fetched = fetched.map((q) => ({
+          ...q,
+          options: shuffleArray(q.options),
+        }));
+
+        // Mode logic
+        if (mode === "quick") {
+          fetched = fetched.slice(0, 5);
+        }
+
+        setQuestions(fetched);
+
+        // Restore progress
+        const saved = JSON.parse(localStorage.getItem("quiz-progress"));
+        if (saved && saved.category === category) {
+          setCurrent(saved.current || 0);
+          setAnswers(saved.answers || []);
+        }
+      } catch (err) {
+        console.error("Error fetching questions:", err);
+        logout();
+      } finally {
+        setLoading(false);
       }
+    };
 
-    } catch (err) {
-      console.error('Error fetching questions:', err);
-      logout();
-    } finally {
-      setLoading(false);
+    if (isAuthenticated && category) {
+      fetchQuestions();
     }
-  };
+  }, [isAuthenticated, category, mode, logout, shuffleArray]);
 
-  if (isAuthenticated) {
-    fetchQuestions(); // 
-  }
-}, [isAuthenticated, logout]);
-
+  // ✅ Next Question
   const handleNext = useCallback(() => {
     setSelected(null);
     setShowAnswer(false);
-    setTime(15);
+    setTime(QUESTION_TIME);
     setCurrent((prev) => prev + 1);
   }, []);
 
+  // ✅ Timer (only for non-practice)
   useEffect(() => {
     clearInterval(timerRef.current);
 
-    if (result || questions.length === 0) {
-      return undefined;
-    }
+    if (mode === "practice" || questions.length === 0) return;
 
     timerRef.current = setInterval(() => {
       setTime((prev) => {
-        if (prev === 1) {
+        if (prev <= 1) {
           handleNext();
-          return 15;
+          return QUESTION_TIME;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [current, result, questions.length, handleNext]);
+  }, [current, questions.length, mode, handleNext]);
 
+  // ✅ Save progress
   useEffect(() => {
-    if (result) {
-      clearInterval(timerRef.current);
-    }
-  }, [result]);
+    localStorage.setItem(
+      "quiz-progress",
+      JSON.stringify({ current, answers, category })
+    );
+  }, [current, answers, category]);
 
-  useEffect(() => {
-    localStorage.setItem('quiz-progress', JSON.stringify({ current, answers }));
-  }, [current, answers]);
-
+  // ✅ Option Click
   const handleOptionClick = (opt) => {
     if (showAnswer) return;
 
     setSelected(opt);
     setShowAnswer(true);
 
-    const newAnswers = [...answers];
-    newAnswers[current] = opt;
-    setAnswers(newAnswers);
+    const updated = [...answers];
+    updated[current] = opt;
+    setAnswers(updated);
 
-    setTimeout(() => {
-      handleNext();
-    }, 3500);
+    setTimeout(handleNext, 2000);
   };
 
+  // ✅ Submit
   const handleSubmit = async () => {
     try {
-      await api.post('/quiz/submit', { answers });
-      localStorage.removeItem('quiz-progress');
-      // Redirect to leaderboard after quiz completion
-      navigate('/leaderboard');
+      await api.post("/quiz/submit", {
+        answers,
+        category,
+        mode,
+      });
+
+      localStorage.removeItem("quiz-progress");
+      navigate("/leaderboard");
     } catch (err) {
-      console.error('Submit error:', err);
+      console.error("Submit error:", err);
       logout();
     }
   };
 
+  // ✅ Loading
   if (authLoading || loading) {
     return <h2 className="center">Loading...</h2>;
   }
 
+  // ✅ No Questions
+  if (!questions.length) {
+    return <h2 className="center">No questions available 😕</h2>;
+  }
+
+  // ✅ End Screen
   if (current >= questions.length) {
     return (
-      <div className="quiz-page">
-        <Navbar />
-        <div className="submit-screen">
-          <h2>🎯 Ready to Submit?</h2>
-          <p style={{ color: '#666', marginBottom: '30px' }}>
-            You've completed all {questions.length} questions!
-          </p>
-          <button className="submit-btn" onClick={handleSubmit}>
-            🚀 Submit Quiz
-          </button>
-          <button
-            className="submit-btn"
-            onClick={logout}
-            style={{
-              background: 'linear-gradient(135deg, #f87171, #ef4444)',
-              marginTop: '15px'
-            }}
-          >
-            Logout
-          </button>
-        </div>
+      <div className="submit-screen">
+        <h2>🎯 Ready to Submit?</h2>
+        <p>You completed {questions.length} questions</p>
+
+        <button className="submit-btn" onClick={handleSubmit}>
+          🚀 Submit Quiz
+        </button>
       </div>
     );
   }
 
-  const q = questions[current] || { question: 'No question available', options: [] };
+  const q = questions[current];
 
   return (
     <div className="quiz-page">
-      <Navbar />
+      {/* Header handled globally */}
 
-      {/* Header Section */}
       <div className="quiz-header">
-        <h1 className="quiz-title">🚀 Quiz Challenge</h1>
+        <h1>
+          🚀 {category} ({mode})
+        </h1>
 
-        {/* Progress Bar */}
+        {/* Progress */}
         <div className="progress-container">
-          <div className="progress-label">
-            <span>Progress</span>
-            <span>{current + 1} / {questions.length}</span>
-          </div>
+          <span>
+            {current + 1} / {questions.length}
+          </span>
           <div className="progress">
             <div
               className="progress-bar"
               style={{
-                width: questions.length ? `${((current + 1) / questions.length) * 100}%` : "0%"
+                width: `${((current + 1) / questions.length) * 100}%`,
               }}
-            ></div>
+            />
           </div>
         </div>
 
         {/* Timer */}
-        <div className="timer-container">
-          <div className="timer">{time}s</div>
-        </div>
+        {mode !== "practice" && <div className="timer">{time}s</div>}
       </div>
 
-      {/* Quiz Card */}
+      {/* Question */}
       <div className={`quiz-card ${showAnswer ? "flip" : ""}`}>
         <div className="card-inner">
-          {/* FRONT */}
           <div className="card-front">
-            <h2 className="question">{q.question}</h2>
+            <h2>{q.question}</h2>
 
             <div className="options">
-              {q.options.map((opt, index) => {
-                const correct = q.answer;
-                let statusClass = "";
+              {q.options.map((opt, i) => {
+                let status = "";
 
                 if (showAnswer) {
-                  if (opt === correct) statusClass = "correct";
-                  else if (opt === selected && selected !== correct) statusClass = "wrong";
+                  if (opt === q.answer) status = "correct";
+                  else if (opt === selected) status = "wrong";
                 }
 
                 return (
                   <button
-                    key={index}
-                    className={`option-btn ${statusClass}`}
+                    key={i}
+                    className={`option-btn ${status}`}
                     onClick={() => handleOptionClick(opt)}
                     disabled={showAnswer}
                   >
@@ -209,15 +235,13 @@ export default function Quiz() {
             </div>
           </div>
 
-          {/* BACK */}
           <div className="card-back">
-            <h2>Answer</h2>
-            <p className="correct-answer">{q.answer}</p>
+            <h3>Correct Answer</h3>
+            <p>{q.answer}</p>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
       <div className="quiz-footer">
         Question {current + 1} of {questions.length}
       </div>
