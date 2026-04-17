@@ -11,11 +11,20 @@
     "start": "npm run build && npm --prefix server start",
     "install-all": "npm install && npm --prefix client install && npm --prefix server install"
   },
-  "keywords": ["quiz", "full-stack", "react", "express", "mongodb"],
+  "keywords": [
+    "quiz",
+    "full-stack",
+    "react",
+    "express",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.14"
   }
 }

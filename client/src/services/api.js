@@ -1,9 +1,7 @@
 import axios from "axios";
 
-import axios from "axios";
-
 const api = axios.create({
-  baseURL: "https://quiz-app-production-61ca.up.railway.app/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -11,8 +9,6 @@ const api = axios.create({
 });
 
 export default api;
-
-
 
 api.interceptors.request.use(
   (config) => {
@@ -58,5 +54,3 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export default api;
