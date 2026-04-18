@@ -468,15 +468,10 @@ app.get("/api/quiz/leaderboard", async (req, res) => {
   }
 });
 
-/* =========================
-   ✅ HEALTH
-========================= */
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
-/* =========================
-   ✅ SERVER
-========================= */
+// ✅ start server (LAST)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log("Server running on", PORT));

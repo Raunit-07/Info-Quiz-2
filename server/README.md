@@ -1,4 +1,3 @@
-# Quiz-App
 
 # Quiz-App
 # 🎯 Full-Stack Quiz Application
