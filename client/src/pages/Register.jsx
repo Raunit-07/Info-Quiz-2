@@ -15,11 +15,11 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/quiz');
-    }
-  }, [isAuthenticated, navigate]);
+ useEffect(() => {
+  if (isAuthenticated) {
+    navigate('/dashboard');
+  }
+}, [isAuthenticated, navigate]);
 
   const checkStrength = (pass) => {
     if (pass.length < 6) return 'Weak';
@@ -49,8 +49,8 @@ export default function Register() {
 
     console.log("Response:", res.data);
 
-    signIn(res.data.token);
-    navigate('/quiz');
+    navigate('/login');
+
   } catch (err) {
     console.log("ERROR:", err.response?.data || err.message);
     const errorMessage = err.response?.data?.error || err.response?.data || 'Registration failed. Try again.';
@@ -113,7 +113,7 @@ export default function Register() {
 
           <p className="toggle">
             Already have an account?
-            <span onClick={() => navigate('/')}> Login</span>
+            <span onClick={() => navigate('/login')}> Login</span>
           </p>
         </div>
       )}

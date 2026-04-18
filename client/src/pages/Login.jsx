@@ -17,7 +17,7 @@ export default function Login() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/quiz');
+      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
