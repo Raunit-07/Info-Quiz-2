@@ -472,6 +472,14 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
-// ✅ start server (LAST)
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Server running on", PORT));
+// Example route test
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
+
+
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, () => {
+  console.log("Server running on", PORT);
+});
