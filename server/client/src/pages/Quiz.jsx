@@ -24,70 +24,56 @@ export default function Quiz() {
 
   // ✅ Redirect safety
   useEffect(() => {
-  if (!authLoading && !isAuthenticated) {
-    navigate("/login");
-  }
+  const fetchQuestions = async () => {
+    try {
+      const res = await api.get(`/quiz/questions?category=${category}`);
 
-  // 🔥 protect direct access
-  if (!location.state || !category || !mode) {
-    navigate("/dashboard");
-  }
-}, [authLoading, isAuthenticated, category, mode, location.state, navigate]);
+      let fetched = res.data.data || [];
 
-  // ✅ Shuffle helper
-  const shuffleArray = useCallback((arr) => {
-    return [...arr].sort(() => Math.random() - 0.5);
-  }, []);
+      if (!fetched.length) {
+        setQuestions([]);
+        setLoading(false);
+        return;
+      }
 
-  // ✅ Fetch Questions
-  useEffect(() => {
-    const fetchQuestions = async () => {
+      // Shuffle
+      fetched = shuffleArray(fetched);
+
+      fetched = fetched.map((q) => ({
+        ...q,
+        options: shuffleArray(q.options),
+      }));
+
+      if (mode === "quick") {
+        fetched = fetched.slice(0, 5);
+      }
+
+      setQuestions(fetched);
+
+      // Restore progress
+      let saved = null;
       try {
-        const res = await api.get(`/quiz/questions?category=${category}`);
+        saved = JSON.parse(localStorage.getItem("quiz-progress"));
+      } catch {
+        saved = null;
+      }
 
-        let fetched = res.data.data || [];
+      if (saved && saved.category === category) {
+        setCurrent(saved.current || 0);
+        setAnswers(saved.answers || []);
+      }
 
-        if (!fetched.length) {
-          setQuestions([]);
-          return;
-        }
-
-        // Shuffle questions
-        fetched = shuffleArray(fetched);
-
-        // Shuffle options
-        fetched = fetched.map((q) => ({
-          ...q,
-          options: shuffleArray(q.options),
-        }));
-
-        // Mode logic
-        if (mode === "quick") {
-          fetched = fetched.slice(0, 5);
-        }
-
-        setQuestions(fetched);
-
-        // Restore progress
-        // ✅ Restore progress (SAFE)
-let saved = null;
-
-try {
-  saved = JSON.parse(localStorage.getItem("quiz-progress"));
-} catch (e) {
-  console.warn("Invalid quiz-progress in localStorage");
-  saved = null;
-}
-
-if (saved && saved.category === category) {
-  setCurrent(saved.current || 0);
-  setAnswers(saved.answers || []);
-}
-
-    if (isAuthenticated && category) {
-      fetchQuestions();
+      setLoading(false); // ✅ IMPORTANT
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setLoading(false);
     }
-  }, [isAuthenticated, category, mode, logout, shuffleArray]);
+  };
+
+  if (isAuthenticated && category) {
+    fetchQuestions(); // ✅ correct place
+  }
+}, [isAuthenticated, category, mode, shuffleArray]);
 
   // ✅ Next Question
   const handleNext = useCallback(() => {
