@@ -1,0 +1,250 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+
+export default function Quiz() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, loading: authLoading, logout } = useAuth();
+
+  const { category, mode } = location.state || {};
+
+  const QUESTION_TIME = 15;
+
+  const [questions, setQuestions] = useState([]);
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [time, setTime] = useState(QUESTION_TIME);
+  const [loading, setLoading] = useState(true);
+
+  const timerRef = useRef(null);
+
+  // ✅ Redirect safety
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate("/login");
+    }
+
+    if (!category) {
+      navigate("/dashboard");
+    }
+  }, [authLoading, isAuthenticated, category, navigate]);
+
+  // ✅ Shuffle helper
+  const shuffleArray = useCallback((arr) => {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }, []);
+
+  // ✅ Fetch Questions
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const res = await api.get(`/quiz/questions?category=${category}`);
+
+        let fetched = res.data.data || [];
+
+        if (!fetched.length) {
+          setQuestions([]);
+          return;
+        }
+
+        // Shuffle questions
+        fetched = shuffleArray(fetched);
+
+        // Shuffle options
+        fetched = fetched.map((q) => ({
+          ...q,
+          options: shuffleArray(q.options),
+        }));
+
+        // Mode logic
+        if (mode === "quick") {
+          fetched = fetched.slice(0, 5);
+        }
+
+        setQuestions(fetched);
+
+        // Restore progress
+        const saved = JSON.parse(localStorage.getItem("quiz-progress"));
+        if (saved && saved.category === category) {
+          setCurrent(saved.current || 0);
+          setAnswers(saved.answers || []);
+        }
+      } catch (err) {
+        console.error("Error fetching questions:", err);
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated && category) {
+      fetchQuestions();
+    }
+  }, [isAuthenticated, category, mode, logout, shuffleArray]);
+
+  // ✅ Next Question
+  const handleNext = useCallback(() => {
+    setSelected(null);
+    setShowAnswer(false);
+    setTime(QUESTION_TIME);
+    setCurrent((prev) => prev + 1);
+  }, []);
+
+  // ✅ Timer (only for non-practice)
+  useEffect(() => {
+    clearInterval(timerRef.current);
+
+    if (mode === "practice" || questions.length === 0) return;
+
+    timerRef.current = setInterval(() => {
+      setTime((prev) => {
+        if (prev <= 1) {
+          handleNext();
+          return QUESTION_TIME;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timerRef.current);
+  }, [current, questions.length, mode, handleNext]);
+
+  // ✅ Save progress
+  useEffect(() => {
+    localStorage.setItem(
+      "quiz-progress",
+      JSON.stringify({ current, answers, category })
+    );
+  }, [current, answers, category]);
+
+  // ✅ Option Click
+  const handleOptionClick = (opt) => {
+    if (showAnswer) return;
+
+    setSelected(opt);
+    setShowAnswer(true);
+
+    const updated = [...answers];
+    updated[current] = opt;
+    setAnswers(updated);
+
+    setTimeout(handleNext, 2000);
+  };
+
+  // ✅ Submit
+  const handleSubmit = async () => {
+    try {
+      await api.post("/quiz/submit", {
+        answers,
+        category,
+        mode,
+      });
+
+      localStorage.removeItem("quiz-progress");
+      navigate("/leaderboard");
+    } catch (err) {
+      console.error("Submit error:", err);
+      logout();
+    }
+  };
+
+  // ✅ Loading
+  if (authLoading || loading) {
+    return <h2 className="center">Loading...</h2>;
+  }
+
+  // ✅ No Questions
+  if (!questions.length) {
+    return <h2 className="center">No questions available 😕</h2>;
+  }
+
+  // ✅ End Screen
+  if (current >= questions.length) {
+    return (
+      <div className="submit-screen">
+        <h2>🎯 Ready to Submit?</h2>
+        <p>You completed {questions.length} questions</p>
+
+        <button className="submit-btn" onClick={handleSubmit}>
+          🚀 Submit Quiz
+        </button>
+      </div>
+    );
+  }
+
+  const q = questions[current];
+
+  return (
+    <div className="quiz-page">
+      {/* Header handled globally */}
+
+      <div className="quiz-header">
+        <h1>
+          🚀 {category} ({mode})
+        </h1>
+
+        {/* Progress */}
+        <div className="progress-container">
+          <span>
+            {current + 1} / {questions.length}
+          </span>
+          <div className="progress">
+            <div
+              className="progress-bar"
+              style={{
+                width: `${((current + 1) / questions.length) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Timer */}
+        {mode !== "practice" && <div className="timer">{time}s</div>}
+      </div>
+
+      {/* Question */}
+      <div className={`quiz-card ${showAnswer ? "flip" : ""}`}>
+        <div className="card-inner">
+          <div className="card-front">
+            <h2>{q.question}</h2>
+
+            <div className="options">
+              {q.options.map((opt, i) => {
+                let status = "";
+
+                if (showAnswer) {
+                  if (opt === q.answer) status = "correct";
+                  else if (opt === selected) status = "wrong";
+                }
+
+                return (
+                  <button
+                    key={i}
+                    className={`option-btn ${status}`}
+                    onClick={() => handleOptionClick(opt)}
+                    disabled={showAnswer}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="card-back">
+            <h3>Correct Answer</h3>
+            <p>{q.answer}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="quiz-footer">
+        Question {current + 1} of {questions.length}
+      </div>
+    </div>
+  );
+}

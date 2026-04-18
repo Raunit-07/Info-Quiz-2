@@ -11,23 +11,9 @@
     "start": "npm run build && npm --prefix server start",
     "install-all": "npm install && npm --prefix client install && npm --prefix server install"
   },
-  "keywords": [
-    "quiz",
-    "full-stack",
-    "react",
-    "express",
-    "mongodb"
-  ],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["quiz", "full-stack", "react", "express", "mongodb"],
   "devDependencies": {
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3"
-  },
-  "dependencies": {
-    "mongoose": "^9.4.1",
-    "nodemon": "^3.1.14",
-    "react-router": "^7.14.1",
-    "react-router-dom": "^5.3.4"
   }
 }
