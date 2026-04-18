@@ -1,31 +1,29 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-dotenv.config();
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import path from "path";
-import { fileURLToPath } from "url";
-import db from "./db.js";
+import mongoose from "mongoose";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import User from "./models/User.js";
+import Score from "./models/Score.js";
+
+dotenv.config();
 
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || "secret123";
-
-/* =========================
-   ✅ CORS (FIXED)
-========================= */
-app.use(cors({
-  origin: "*", // 🔥 allow all (fixes your issue instantly)
-}));
 
 /* =========================
    ✅ MIDDLEWARE
 ========================= */
+app.use(cors({ origin: "*" }));
 app.use(express.json());
+
+/* =========================
+   ✅ MONGODB CONNECTION
+========================= */
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
 
 /* =========================
    ✅ QUESTIONS DATA
@@ -371,86 +369,65 @@ const questionsData = {
   ],
 };
 
+  //  ✅ MONGODB CONNECTION
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
+
 /* =========================
    ✅ AUTH ROUTES
 ========================= */
 app.post("/api/auth/register", async (req, res) => {
   const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ error: "All fields required" });
-  }
-
-  if (username.length < 3) {
-    return res.status(400).json({ error: "Username too short" });
-  }
-
-  if (password.length < 6) {
-    return res.status(400).json({ error: "Password too short" });
-  }
-
   try {
+    const exists = await User.findOne({ username });
+    if (exists) return res.status(400).json({ error: "User exists" });
+
     const hashed = await bcrypt.hash(password, 10);
 
-    db.query(
-      "INSERT INTO users (username, password) VALUES (?, ?)",
-      [username, hashed],
-      (err) => {
-        if (err) {
-          if (err.message.includes("SQLITE_CONSTRAINT")) {
-            return res.status(400).json({ error: "User already exists" });
-          }
-          return res.status(500).json({ error: "Registration failed" });
-        }
+    await User.create({ username, password: hashed });
 
-        res.status(201).json({ success: true });
-      }
-    );
+    res.status(201).json({ success: true });
   } catch {
     res.status(500).json({ error: "Registration failed" });
   }
 });
 
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
 
-  db.query(
-    "SELECT * FROM users WHERE username=?",
-    [username],
-    async (err, rows) => {
-      if (err || !rows.length) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-      const user = rows[0];
-      const match = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-      if (!match) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-      const token = jwt.sign(
-        { id: user.id, username: user.username },
-        JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      res.json({ token });
-    }
-  );
+    res.json({ token });
+  } catch {
+    res.status(500).json({ error: "Login failed" });
+  }
 });
 
 /* =========================
    ✅ TOKEN MIDDLEWARE
 ========================= */
 function verifyToken(req, res, next) {
-  const header = req.headers["authorization"];
+  const header = req.headers.authorization;
   if (!header) return res.status(401).json({ error: "No token" });
 
   const token = header.split(" ")[1];
 
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });
@@ -458,83 +435,48 @@ function verifyToken(req, res, next) {
 }
 
 /* =========================
-   ✅ QUIZ ROUTES (FIXED)
+   ✅ QUIZ SUBMIT
 ========================= */
-app.get("/api/quiz/questions", verifyToken, (req, res) => {
-  const category = req.query.category;
+app.post("/api/quiz/submit", verifyToken, async (req, res) => {
+  const { score } = req.body;
 
-  if (!category || !questionsData[category]) {
-    return res.status(400).json({ error: "Invalid category" });
+  try {
+    await Score.create({
+      userId: req.user.id,
+      score
+    });
+
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed" });
   }
-
-  const data = questionsData[category];
-
-  res.json({ success: true, data });
-});
-
-app.post("/api/quiz/submit", verifyToken, (req, res) => {
-  const { answers, category } = req.body;
-
-  if (!answers || !category || !questionsData[category]) {
-    return res.status(400).json({ error: "Invalid submission" });
-  }
-
-  const questions = questionsData[category];
-
-  let score = 0;
-  answers.forEach((ans, i) => {
-    if (ans === questions[i]?.answer) score++;
-  });
-
-  db.query(
-    "INSERT INTO scores (user_id, score) VALUES (?, ?)",
-    [req.user.id, score],
-    () => {
-      res.json({ success: true, score });
-    }
-  );
 });
 
 /* =========================
    ✅ LEADERBOARD
 ========================= */
-app.get("/api/quiz/leaderboard", (req, res) => {
-  db.query(
-    `SELECT users.username, scores.score
-     FROM users
-     JOIN scores ON users.id = scores.user_id
-     ORDER BY scores.score DESC
-     LIMIT 10`,
-    [],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: "Failed" });
-      }
-      res.json({ data: rows });
-    }
-  );
+app.get("/api/quiz/leaderboard", async (req, res) => {
+  try {
+    const data = await Score.find()
+      .sort({ score: -1 })
+      .limit(10)
+      .populate("userId", "username");
+
+    res.json({ data });
+  } catch {
+    res.status(500).json({ error: "Failed" });
+  }
 });
 
 /* =========================
-   ✅ HEALTH CHECK
+   ✅ HEALTH
 ========================= */
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
 /* =========================
-   ✅ PRODUCTION STATIC
-========================= */
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../client/build")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../client/build/index.html"));
-  });
-}
-
-/* =========================
-   ✅ START SERVER
+   ✅ SERVER
 ========================= */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log("Server running on", PORT));
