@@ -24,67 +24,56 @@ export default function Quiz() {
 
   // ✅ Redirect safety
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate("/login");
-    }
+  const fetchQuestions = async () => {
+    try {
+      const res = await api.get(`/quiz/questions?category=${category}`);
 
-    if (!category) {
-      navigate("/dashboard");
-    }
-  }, [authLoading, isAuthenticated, category, navigate]);
+      let fetched = res.data.data || [];
 
-  // ✅ Shuffle helper
-  const shuffleArray = useCallback((arr) => {
-    return [...arr].sort(() => Math.random() - 0.5);
-  }, []);
-
-  // ✅ Fetch Questions
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const res = await api.get(`/quiz/questions?category=${category}`);
-
-        let fetched = res.data.data || [];
-
-        if (!fetched.length) {
-          setQuestions([]);
-          return;
-        }
-
-        // Shuffle questions
-        fetched = shuffleArray(fetched);
-
-        // Shuffle options
-        fetched = fetched.map((q) => ({
-          ...q,
-          options: shuffleArray(q.options),
-        }));
-
-        // Mode logic
-        if (mode === "quick") {
-          fetched = fetched.slice(0, 5);
-        }
-
-        setQuestions(fetched);
-
-        // Restore progress
-        const saved = JSON.parse(localStorage.getItem("quiz-progress"));
-        if (saved && saved.category === category) {
-          setCurrent(saved.current || 0);
-          setAnswers(saved.answers || []);
-        }
-      } catch (err) {
-        console.error("Error fetching questions:", err);
-        logout();
-      } finally {
+      if (!fetched.length) {
+        setQuestions([]);
         setLoading(false);
+        return;
       }
-    };
 
-    if (isAuthenticated && category) {
-      fetchQuestions();
+      // Shuffle
+      fetched = shuffleArray(fetched);
+
+      fetched = fetched.map((q) => ({
+        ...q,
+        options: shuffleArray(q.options),
+      }));
+
+      if (mode === "quick") {
+        fetched = fetched.slice(0, 5);
+      }
+
+      setQuestions(fetched);
+
+      // Restore progress
+      let saved = null;
+      try {
+        saved = JSON.parse(localStorage.getItem("quiz-progress"));
+      } catch {
+        saved = null;
+      }
+
+      if (saved && saved.category === category) {
+        setCurrent(saved.current || 0);
+        setAnswers(saved.answers || []);
+      }
+
+      setLoading(false); // ✅ IMPORTANT
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setLoading(false);
     }
-  }, [isAuthenticated, category, mode, logout, shuffleArray]);
+  };
+
+  if (isAuthenticated && category) {
+    fetchQuestions(); // ✅ correct place
+  }
+}, [isAuthenticated, category, mode, shuffleArray]);
 
   // ✅ Next Question
   const handleNext = useCallback(() => {
@@ -137,20 +126,24 @@ export default function Quiz() {
 
   // ✅ Submit
   const handleSubmit = async () => {
-    try {
-      await api.post("/quiz/submit", {
-        answers,
-        category,
-        mode,
-      });
+  try {
+    await api.post("/quiz/submit", {
+      answers,
+      category,
+      mode,
+    });
 
-      localStorage.removeItem("quiz-progress");
-      navigate("/leaderboard");
-    } catch (err) {
-      console.error("Submit error:", err);
-      logout();
-    }
-  };
+    // ✅ clear everything
+    localStorage.removeItem("quiz-progress");
+    localStorage.removeItem("quiz-mode");
+    localStorage.removeItem("quiz-category");
+
+    navigate("/leaderboard");
+  } catch (err) {
+    console.error("Submit error:", err);
+    logout();
+  }
+};
 
   // ✅ Loading
   if (authLoading || loading) {
