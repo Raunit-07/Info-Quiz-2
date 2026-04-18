@@ -25,6 +25,9 @@
     "cross-env": "^7.0.3"
   },
   "dependencies": {
-    "nodemon": "^3.1.14"
+    "mongoose": "^9.4.1",
+    "nodemon": "^3.1.14",
+    "react-router": "^7.14.1",
+    "react-router-dom": "^5.3.4"
   }
 }
