@@ -4,19 +4,30 @@ import CategorySelector from "../components/CategorySelector";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  const [mode, setMode] = useState(null); 
-  
-  const [category, setCategory] = useState(null);
   const navigate = useNavigate();
 
-  // ✅ Optional: Reset selections on mount (clean UX)
+  const [mode, setMode] = useState(() => {
+    return localStorage.getItem("quiz-mode") || null;
+  });
+
+  const [category, setCategory] = useState(() => {
+    return localStorage.getItem("quiz-category") || null;
+  });
+
+  // ✅ Persist selections
   useEffect(() => {
-    setMode(null);
-    setCategory(null);
-  }, []);
+    if (mode) localStorage.setItem("quiz-mode", mode);
+  }, [mode]);
+
+  useEffect(() => {
+    if (category) localStorage.setItem("quiz-category", category);
+  }, [category]);
 
   const startQuiz = () => {
-    if (!mode || !category) return;
+    if (!mode || !category) {
+      alert("Please select both mode and category");
+      return;
+    }
 
     navigate("/quiz", {
       state: { mode, category },
@@ -25,7 +36,6 @@ export default function Dashboard() {
 
   return (
     <div className="px-6 max-w-4xl mx-auto">
-      {/* Header spacing handled by Layout */}
       <div className="pt-24">
 
         {/* Welcome */}

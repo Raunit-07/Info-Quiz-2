@@ -24,14 +24,15 @@ export default function Quiz() {
 
   // ✅ Redirect safety
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate("/login");
-    }
+  if (!authLoading && !isAuthenticated) {
+    navigate("/login");
+  }
 
-    if (!category) {
-      navigate("/dashboard");
-    }
-  }, [authLoading, isAuthenticated, category, navigate]);
+  // 🔥 protect direct access
+  if (!location.state || !category || !mode) {
+    navigate("/dashboard");
+  }
+}, [authLoading, isAuthenticated, category, mode, location.state, navigate]);
 
   // ✅ Shuffle helper
   const shuffleArray = useCallback((arr) => {
@@ -68,18 +69,20 @@ export default function Quiz() {
         setQuestions(fetched);
 
         // Restore progress
-        const saved = JSON.parse(localStorage.getItem("quiz-progress"));
-        if (saved && saved.category === category) {
-          setCurrent(saved.current || 0);
-          setAnswers(saved.answers || []);
-        }
-      } catch (err) {
-        console.error("Error fetching questions:", err);
-        logout();
-      } finally {
-        setLoading(false);
-      }
-    };
+        // ✅ Restore progress (SAFE)
+let saved = null;
+
+try {
+  saved = JSON.parse(localStorage.getItem("quiz-progress"));
+} catch (e) {
+  console.warn("Invalid quiz-progress in localStorage");
+  saved = null;
+}
+
+if (saved && saved.category === category) {
+  setCurrent(saved.current || 0);
+  setAnswers(saved.answers || []);
+}
 
     if (isAuthenticated && category) {
       fetchQuestions();
@@ -137,20 +140,24 @@ export default function Quiz() {
 
   // ✅ Submit
   const handleSubmit = async () => {
-    try {
-      await api.post("/quiz/submit", {
-        answers,
-        category,
-        mode,
-      });
+  try {
+    await api.post("/quiz/submit", {
+      answers,
+      category,
+      mode,
+    });
 
-      localStorage.removeItem("quiz-progress");
-      navigate("/leaderboard");
-    } catch (err) {
-      console.error("Submit error:", err);
-      logout();
-    }
-  };
+    // ✅ clear everything
+    localStorage.removeItem("quiz-progress");
+    localStorage.removeItem("quiz-mode");
+    localStorage.removeItem("quiz-category");
+
+    navigate("/leaderboard");
+  } catch (err) {
+    console.error("Submit error:", err);
+    logout();
+  }
+};
 
   // ✅ Loading
   if (authLoading || loading) {
