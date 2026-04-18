@@ -1,8 +1,13 @@
 import axios from "axios";
 
+// ✅ Always point to deployed backend in production
+const BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  "https://quiz-backend-yg1i.onrender.com/api";
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
-  timeout: 10000,
+  baseURL: BASE_URL,
+  timeout: 15000, // थोड़ा बढ़ाया (Render free slow होता है)
   headers: {
     "Content-Type": "application/json",
   },
@@ -10,6 +15,9 @@ const api = axios.create({
 
 export default api;
 
+/* =========================
+   ✅ REQUEST INTERCEPTOR
+========================= */
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -26,29 +34,30 @@ api.interceptors.request.use(
   }
 );
 
-// ✅ RESPONSE INTERCEPTOR (handle errors globally)
+/* =========================
+   ✅ RESPONSE INTERCEPTOR
+========================= */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error("API Error:", error.response || error.message);
 
-    // 🔥 Token expired / unauthorized
+    // 🔥 Unauthorized (token expired)
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("quiz-progress");
 
-      // Better than reload → keeps SPA behavior
       window.location.replace("/");
     }
 
-    // 🔥 Timeout / server down
+    // 🔥 Timeout (Render free delay)
     if (error.code === "ECONNABORTED") {
-      alert("Server is taking too long. Please try again.");
+      alert("Server is slow (free tier). Try again in a few seconds.");
     }
 
-    // 🔥 Network error (backend not running)
+    // 🔥 Network error
     if (!error.response) {
-      alert("Cannot connect to server. Check backend.");
+      alert("Backend not reachable. Please wait or refresh.");
     }
 
     return Promise.reject(error);
