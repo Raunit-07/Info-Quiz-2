@@ -34,10 +34,10 @@ export default function Quiz() {
 
   /* ✅ FIX 2: PROTECT ROUTE */
   useEffect(() => {
-    if (!location.state) {
-      navigate("/");
-    }
-  }, [location.state, navigate]);
+  if (!location.state || !category || !mode) {
+    navigate("/dashboard");
+  }
+}, [location.state, category, mode, navigate]);
 
   /* ✅ FETCH QUESTIONS */
   useEffect(() => {
@@ -163,9 +163,17 @@ export default function Quiz() {
   };
 
   /* ✅ LOADING */
-  if (authLoading || loading) {
-    return <h2 className="center">Loading...</h2>;
-  }
+  if (authLoading) {
+  return <h2 className="center">Loading...</h2>;
+}
+
+if (!category || !mode) {
+  return <h2 className="center">Redirecting...</h2>;
+}
+
+if (loading) {
+  return <h2 className="center">Loading questions...</h2>;
+}
 
   /* ✅ NO QUESTIONS */
   if (!questions.length) {

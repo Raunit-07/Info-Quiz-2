@@ -16,10 +16,10 @@ export default function Login() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/quiz');
-    }
-  }, [isAuthenticated, navigate]);
+  if (isAuthenticated) {
+    navigate('/dashboard'); 
+  }
+}, [isAuthenticated, navigate]);
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -37,7 +37,7 @@ export default function Login() {
       });
 
       signIn(res.data.token);
-      navigate('/quiz');
+      navigate('/dashboard');
     } catch (err) {
       const errorMessage = err.response?.data?.error || err.response?.data || 'Login failed. Please try again.';
       setError(typeof errorMessage === 'string' ? errorMessage : 'Login failed. Please try again.');
