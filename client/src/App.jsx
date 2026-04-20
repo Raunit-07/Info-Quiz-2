@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import "./App.css";
@@ -7,17 +7,21 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Quiz from "./pages/Quiz";
 import Leaderboard from "./pages/Leaderboard";
-import Dashboard from "./pages/Dashboard"; // ✅ ADD THIS
+import Dashboard from "./pages/Dashboard";
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
+
+          {/* ✅ Default route */}
+          <Route path="/" element={<Navigate to="/login" />} />
+
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* ✅ ADD DASHBOARD */}
+          {/* ✅ Protected routes */}
           <Route
             path="/dashboard"
             element={
@@ -27,7 +31,12 @@ export default function App() {
             }
           />
 
-          <Route path="/quiz"element={<PrivateRoute> <Quiz /></PrivateRoute>
+          <Route
+            path="/quiz"
+            element={
+              <PrivateRoute>
+                <Quiz />
+              </PrivateRoute>
             }
           />
 
@@ -39,6 +48,7 @@ export default function App() {
               </PrivateRoute>
             }
           />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>
