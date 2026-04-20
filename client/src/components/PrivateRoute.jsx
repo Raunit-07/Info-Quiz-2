@@ -4,18 +4,18 @@ import { useAuth } from "../context/AuthContext";
 export default function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
-  // ⏳ Wait until auth state is resolved
+  // ⏳ Wait until auth state is checked
   if (loading) {
     return <div className="center">Loading...</div>;
   }
 
-  // 🔐 Check both context + token (extra safe for production)
   const token = localStorage.getItem("token");
 
-  if (!isAuthenticated || !token) {
+  // ❌ If NO token OR auth false → go to login
+  if (!token || !isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // ✅ Allow access
+  // ✅ If valid → allow access
   return children;
 }

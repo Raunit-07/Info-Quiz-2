@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
@@ -6,22 +6,34 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // 🔥 Check token on app load
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(Boolean(token));
+    const token = localStorage.getItem("token");
+
+    if (token && token !== "undefined" && token !== "null") {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
+
     setLoading(false);
   }, []);
 
+  // ✅ Login
   const signIn = (token) => {
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
+    if (token) {
+      localStorage.setItem("token", token);
+      setIsAuthenticated(true);
+    }
   };
 
+  // ✅ Logout (FIXED)
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('quiz-progress');
+    localStorage.clear(); // 🔥 clear everything
     setIsAuthenticated(false);
-    window.location.href = '/';
+
+    // ❌ avoid full reload
+    window.location.replace("/login");
   };
 
   return (
@@ -37,7 +49,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider');
+    throw new Error("useAuth must be used inside AuthProvider");
   }
 
   return context;
