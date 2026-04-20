@@ -7,7 +7,7 @@ const BASE_URL =
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -39,20 +39,18 @@ api.interceptors.response.use(
   (error) => {
     console.error("API Error:", error.response || error.message);
 
-    // 🔥 Token expired / unauthorized
     if (error.response?.status === 401) {
       localStorage.clear();
       window.location.replace("/login");
     }
 
-    // 🔥 Timeout (Render free slow)
     if (error.code === "ECONNABORTED") {
       alert("Server is slow (Render free tier). Try again.");
     }
 
-    // 🔥 Backend down / network issue
-    if (!error.response) {
-      alert("Backend not reachable. Please wait or refresh.");
+    // ✅ FIXED HERE
+    if (!error.response && error.code !== "ECONNABORTED") {
+      console.warn("Network issue");
     }
 
     return Promise.reject(error);

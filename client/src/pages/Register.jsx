@@ -22,6 +22,12 @@ export default function Register() {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+  fetch("https://quiz-backend-ygl1.onrender.com/api/health")
+    .then(() => console.log("Backend awake"))
+    .catch(() => console.log("Waking backend..."));
+}, []);
+
   const checkStrength = (pass) => {
     if (pass.length < 6) return 'Weak';
     if (pass.match(/[A-Z]/) && pass.match(/[0-9]/)) return 'Strong';
@@ -128,12 +134,12 @@ export default function Register() {
           {error && <p className="error">{error}</p>}
 
           <button
-            className="login-btn"
-            onClick={handleRegister}
-            disabled={loading}
-          >
-            {loading ? 'Registering...' : 'Register'}
-          </button>
+          className="login-btn"
+          onClick={handleRegister}
+          disabled={loading}
+        >
+          {loading ? 'Registering...' : 'Register'}
+        </button>
 
           <p className="toggle">
             Already have an account?
