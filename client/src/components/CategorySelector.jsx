@@ -1,16 +1,20 @@
+import React from "react";
+
 const CategorySelector = ({ selectedCategory, setSelectedCategory }) => {
   const categories = ["Science", "Math", "History", "Tech"];
 
   return (
-    <div>
+    <div style={{ marginBottom: "25px" }}>
       <h3 style={{ marginBottom: "10px" }}>Select Category</h3>
 
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        gap: "12px",
-        flexWrap: "wrap"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
         {categories.map((cat) => (
           <button
             key={cat}
@@ -38,3 +42,5 @@ const CategorySelector = ({ selectedCategory, setSelectedCategory }) => {
     </div>
   );
 };
+
+export default CategorySelector;
