@@ -1,13 +1,13 @@
 import axios from "axios";
 
-// ✅ Always point to deployed backend in production
+// ✅ Correct base URL (NO /api here)
 const BASE_URL =
   process.env.REACT_APP_API_URL ||
-  "https://quiz-backend-yg1i.onrender.com/api";
+  "https://quiz-backend-yg1i.onrender.com";
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000, // थोड़ा बढ़ाया (Render free slow होता है)
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -28,10 +28,7 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    console.error("Request Error:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 /* =========================
@@ -42,20 +39,18 @@ api.interceptors.response.use(
   (error) => {
     console.error("API Error:", error.response || error.message);
 
-    // 🔥 Unauthorized (token expired)
+    // 🔥 Token expired / unauthorized
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("quiz-progress");
-
-      window.location.replace("/");
+      localStorage.clear();
+      window.location.replace("/login");
     }
 
-    // 🔥 Timeout (Render free delay)
+    // 🔥 Timeout (Render free slow)
     if (error.code === "ECONNABORTED") {
-      alert("Server is slow (free tier). Try again in a few seconds.");
+      alert("Server is slow (Render free tier). Try again.");
     }
 
-    // 🔥 Network error
+    // 🔥 Backend down / network issue
     if (!error.response) {
       alert("Backend not reachable. Please wait or refresh.");
     }

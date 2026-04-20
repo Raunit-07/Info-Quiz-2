@@ -15,9 +15,10 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // 🔥 Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/quiz');
+      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
@@ -28,48 +29,65 @@ export default function Register() {
   };
 
   const handleRegister = async () => {
-  setError('');
+    setError('');
 
-  if (!username || !password || !confirm) {
-    setError('All fields are required');
-    return;
-  }
+    if (!username || !password || !confirm) {
+      setError('All fields are required');
+      return;
+    }
 
-  if (password !== confirm) {
-    setError('Passwords do not match');
-    return;
-  }
+    if (password !== confirm) {
+      setError('Passwords do not match');
+      return;
+    }
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    console.log("Sending request...");
+      console.log("Sending request...");
 
-    const res = await api.post('/auth/register', { username, password });
+      // ✅ FIXED API PATH
+      const res = await api.post('/api/auth/register', {
+        username,
+        password
+      });
 
-    console.log("Response:", res.data);
+      console.log("Response:", res.data);
 
-    signIn(res.data.token);
-    navigate('/quiz');
-  } catch (err) {
-    console.log("ERROR:", err.response?.data || err.message);
-    const errorMessage = err.response?.data?.error || err.response?.data || 'Registration failed. Try again.';
-    setError(typeof errorMessage === 'string' ? errorMessage : 'Registration failed. Try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+      // ✅ Save token
+      signIn(res.data.token);
+
+      // ✅ Redirect
+      navigate('/dashboard');
+
+    } catch (err) {
+      console.log("ERROR:", err.response?.data || err.message);
+
+      const errorMessage =
+        err.response?.data?.error ||
+        err.response?.data ||
+        'Registration failed. Try again.';
+
+      setError(typeof errorMessage === 'string'
+        ? errorMessage
+        : 'Registration failed. Try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="login-page">
       {authLoading ? (
         <div className="login-card">
           <h2>Checking authentication...</h2>
-          <p>Please wait while we verify your credentials.</p>
         </div>
       ) : (
         <div className="login-card">
-          <h3 className="back" onClick={() => navigate('/')}>← Registration</h3>
+          <h3 className="back" onClick={() => navigate('/login')}>
+            ← Registration
+          </h3>
 
           <h2>Create a new account</h2>
 
@@ -91,7 +109,9 @@ export default function Register() {
           />
 
           {password && (
-            <p className={`strength ${strength.toLowerCase()}`}>{strength}</p>
+            <p className={`strength ${strength.toLowerCase()}`}>
+              {strength}
+            </p>
           )}
 
           <input
@@ -107,13 +127,17 @@ export default function Register() {
 
           {error && <p className="error">{error}</p>}
 
-          <button className="login-btn" onClick={handleRegister} disabled={loading}>
+          <button
+            className="login-btn"
+            onClick={handleRegister}
+            disabled={loading}
+          >
             {loading ? 'Registering...' : 'Register'}
           </button>
 
           <p className="toggle">
             Already have an account?
-            <span onClick={() => navigate('/')}> Login</span>
+            <span onClick={() => navigate('/login')}> Login</span>
           </p>
         </div>
       )}
