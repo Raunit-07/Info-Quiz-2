@@ -1,3 +1,5 @@
+import React from "react";
+
 const ModeSelector = ({ selectedMode, setSelectedMode }) => {
   const modes = ["easy", "medium", "hard"];
 
@@ -33,3 +35,6 @@ const ModeSelector = ({ selectedMode, setSelectedMode }) => {
     </div>
   );
 };
+
+/* ✅ THIS WAS MISSING */
+export default ModeSelector;
