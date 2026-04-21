@@ -11,8 +11,9 @@ import Dashboard from "./pages/Dashboard";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+      
         <Routes>
 
           {/* ✅ Default route */}
@@ -57,7 +58,7 @@ export default function App() {
           />
 
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

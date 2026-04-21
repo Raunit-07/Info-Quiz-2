@@ -51,14 +51,16 @@ export default function Register() {
     try {
       setLoading(true);
 
-      const res = await api.post('/api/auth/register', {   // ✅ FIXED HERE
-        username,
-        password
-      });
+       const res = await api.post('/api/auth/register', {
+    username,
+    password
+  });
 
-      navigate('/login', {
-  state: { message: "Registration successful 🎉 Please login." }
-});
+  // 👇 THIS IS WHERE YOU ADD IT
+  navigate('/login', {
+    state: { message: "Registration successful 🎉 Please login." }
+  });
+
 
     } catch (err) {
       const errorMessage =

@@ -7,6 +7,15 @@ import logo from '../assets/logo.png';
 
 export default function Login() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+  const hasVisited = localStorage.getItem("hasVisited");
+
+  if (!hasVisited) {
+    localStorage.setItem("hasVisited", "true");
+    navigate("/register");
+  }
+}, []);
   const { isAuthenticated, signIn, loading: authLoading } = useAuth();
 
   const [username, setUsername] = useState('');
