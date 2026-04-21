@@ -48,7 +48,7 @@ export default function Login() {
       setLoading(true);
       setError('');
 
-      const res = await api.post('/auth/login', {   // ✅ FIXED (no double /api)
+      const res = await api.post('/api/auth/login', {   // ✅ FIXED (no double /api)
         username,
         password,
       });

@@ -505,6 +505,17 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
+
+
+/* =========================
+   ✅ START SERVER (LAST)
+========================= */
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, () => {
+  console.log("Server running on", PORT);
+});
+
 /* =========================
    ✅ SERVE FRONTEND (FIXED POSITION)
 ========================= */
@@ -514,13 +525,4 @@ app.use(express.static(path.join(__dirname, "../client/build")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/build/index.html"));
-});
-
-/* =========================
-   ✅ START SERVER (LAST)
-========================= */
-const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, () => {
-  console.log("Server running on", PORT);
 });
