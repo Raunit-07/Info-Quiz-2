@@ -39,7 +39,7 @@ export default function Quiz() {
   }, [location.state, category, mode, navigate]);
 
 
-  
+
   /* 🔥 FETCH QUESTIONS (FIXED) */
   useEffect(() => {
   const fetchQuestions = async () => {
@@ -57,8 +57,8 @@ export default function Quiz() {
 
       // ✅ API CALL
       const res = await api.get(
-        `/quiz/questions?category=${category}&difficulty=${realDifficulty}`
-      );
+  `/quiz/questions?category=${category}&difficulty=${mode}`
+);
 
       console.log("API RESPONSE:", res.data);
 
