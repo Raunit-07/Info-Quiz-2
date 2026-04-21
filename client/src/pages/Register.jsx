@@ -51,7 +51,7 @@ export default function Register() {
     try {
       setLoading(true);
 
-      const res = await api.post('/auth/register', {   // ✅ FIXED HERE
+      const res = await api.post('/api/auth/register', {   // ✅ FIXED HERE
         username,
         password
       });
