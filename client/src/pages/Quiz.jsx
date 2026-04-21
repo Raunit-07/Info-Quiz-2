@@ -43,7 +43,7 @@ export default function Quiz() {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await api.get(`/quiz/questions?category=${category}`);
+        const res = await api.get(`/quiz?category=${category}&difficulty=${mode}`);
 
         let fetched = res.data.data || [];
 

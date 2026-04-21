@@ -2,51 +2,78 @@ import Question from '../models/Question.js';
 
 export const getQuestions = async (req, res) => {
   try {
-    const questions = await Question.find({}, 'id question options');
-    res.status(200).json(questions);
+    const { category, difficulty } = req.query;
+
+    console.log("Query:", category, difficulty);
+
+    const questions = await Question.find({
+      category: new RegExp(`^${category}$`, "i"),
+      difficulty: new RegExp(`^${difficulty}$`, "i"),
+    }).select("_id question options"); // ❗ don't send answer to frontend
+
+    if (!questions.length) {
+      return res.status(200).json({
+        success: false,
+        message: "No questions found",
+        data: [],
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: questions,
+    });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
 
+
 export const submitQuiz = async (req, res) => {
   try {
     const { answers } = req.body;
-    const userId = req.user.id;
 
     if (!Array.isArray(answers)) {
       return res.status(400).json({ error: 'Answers must be an array' });
     }
 
+    // answers format:
+    // [{ questionId, selectedOption }]
+
     let score = 0;
 
-    answers.forEach((answer, index) => {
-      if (questions[index] && answer === questions[index].answer) {
+    for (const ans of answers) {
+      const question = await Question.findById(ans.questionId);
+
+      if (question && ans.selectedOption === question.answer) {
         score++;
       }
-    });
+    }
 
-    const result = score >= 3 ? 'Pass' : 'Fail';
+    const result = score >= Math.ceil(answers.length / 2) ? 'Pass' : 'Fail';
 
-    // Mock response - no database
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       score,
+      total: answers.length,
       result,
-      message: `You scored ${score}/${questions.length}. Results not saved (no database).`,
     });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
 
+
 export const getLeaderboard = async (req, res) => {
   try {
-    // Mock leaderboard - no database
     res.status(200).json({
       success: true,
       data: [],
-      message: 'Leaderboard not available (no database)',
+      message: 'Leaderboard not implemented yet',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
