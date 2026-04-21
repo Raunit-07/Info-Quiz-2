@@ -38,44 +38,69 @@ export default function Quiz() {
     }
   }, [location.state, category, mode, navigate]);
 
+
+  
   /* 🔥 FETCH QUESTIONS (FIXED) */
   useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const res = await api.get(
-          `/quiz/questions?category=${category}&difficulty=${mode}`
-        );
+  const fetchQuestions = async () => {
+    try {
+      // ✅ FIX 1: map difficulty correctly
+      const difficultyMap = {
+        easy: "medium",
+        medium: "medium",
+        hard: "hard",
+      };
 
-        // ✅ FIX 1: correct response key
-        let fetched = res.data.questions || [];
+      const realDifficulty = difficultyMap[mode] || "medium";
 
-        if (!fetched.length) {
-          setQuestions([]);
-          setLoading(false);
-          return;
-        }
+      console.log("Fetching:", category, realDifficulty);
 
-        // shuffle questions
-        fetched = shuffleArray(fetched);
+      // ✅ API CALL
+      const res = await api.get(
+        `/quiz/questions?category=${category}&difficulty=${realDifficulty}`
+      );
 
-        // shuffle options
-        fetched = fetched.map((q) => ({
-          ...q,
-          options: shuffleArray(q.options),
-        }));
+      console.log("API RESPONSE:", res.data);
 
-        setQuestions(fetched);
-        setLoading(false);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setLoading(false);
+      // ✅ FIX 2: correct response key
+      let fetched = res.data.data || res.data.questions || [];
+
+      // ✅ fallback safety (never empty)
+      if (!fetched.length) {
+        console.warn("No filtered questions, using fallback");
+        fetched = res.data.data || [];
       }
-    };
 
-    if (isAuthenticated && category) {
-      fetchQuestions();
+      if (!fetched.length) {
+        setQuestions([]);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ shuffle questions
+      fetched = shuffleArray(fetched);
+
+      // ✅ shuffle options
+      fetched = fetched.map((q) => ({
+        ...q,
+        options: shuffleArray(q.options),
+      }));
+
+      setQuestions(fetched);
+      setLoading(false);
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setLoading(false);
     }
-  }, [isAuthenticated, category, mode]);
+  };
+
+  if (isAuthenticated && category) {
+    fetchQuestions();
+  }
+}, [isAuthenticated, category, mode]);
+
+
 
   /* NEXT */
   const handleNext = useCallback(() => {
