@@ -376,7 +376,10 @@ const questionsData = {
 app.get("/api/quiz/questions", (req, res) => {
   const { category, difficulty } = req.query;
 
-  console.log("Requested:", category, difficulty);
+  // 🔥 ADD HERE
+  console.log("CATEGORY:", category);
+  console.log("DIFFICULTY:", difficulty);
+  console.log("AVAILABLE:", Object.keys(questionsData));
 
   if (!category || !questionsData[category]) {
     return res.status(400).json({ error: "Invalid category" });
@@ -384,19 +387,13 @@ app.get("/api/quiz/questions", (req, res) => {
 
   let questions = questionsData[category];
 
-  // filter by difficulty
   if (difficulty) {
     questions = questions.filter(
       (q) => q.difficulty.toLowerCase() === difficulty.toLowerCase()
     );
   }
 
-  // fallback if no questions after filter
-  if (!questions.length) {
-    questions = questionsData[category];
-  }
-
-  res.json({ data: questions }); // ✅ IMPORTANT CHANGE
+  res.json({ questions });
 });
 
 /* =========================
