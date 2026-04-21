@@ -376,17 +376,25 @@ const questionsData = {
 app.get("/api/quiz/questions", (req, res) => {
   const { category, difficulty } = req.query;
 
+  console.log("Requested:", category, difficulty);
+
   if (!category || !questionsData[category]) {
     return res.status(400).json({ error: "Invalid category" });
   }
 
   let questions = questionsData[category];
 
+  // filter by difficulty
   if (difficulty) {
-    questions = questions.filter(q => q.difficulty === difficulty);
+    questions = questions.filter(
+      q => q.difficulty.toLowerCase() === difficulty.toLowerCase()
+    );
   }
 
-  res.json({ questions });
+  // limit questions (optional)
+  const limited = questions.slice(0, 5);
+
+  res.json({ questions: limited });
 });
 
 /* =========================

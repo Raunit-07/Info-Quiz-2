@@ -1,7 +1,8 @@
 import React from "react";
 
 const CategorySelector = ({ selectedCategory, setSelectedCategory }) => {
-  const categories = ["Science", "Math", "History", "Tech"];
+  // ✅ FIX: match backend categories EXACTLY
+  const categories = ["Tech", "Sports", "Coding"];
 
   return (
     <div style={{ marginBottom: "25px" }}>

@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 
-/* ✅ FIX 1: ADD THIS FUNCTION */
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -32,20 +31,23 @@ export default function Quiz() {
 
   const timerRef = useRef(null);
 
-  /* ✅ FIX 2: PROTECT ROUTE */
+  /* 🔐 PROTECT ROUTE */
   useEffect(() => {
-  if (!location.state || !category || !mode) {
-    navigate("/dashboard");
-  }
-}, [location.state, category, mode, navigate]);
+    if (!location.state || !category || !mode) {
+      navigate("/dashboard");
+    }
+  }, [location.state, category, mode, navigate]);
 
-  /* ✅ FETCH QUESTIONS */
+  /* 🔥 FETCH QUESTIONS (FIXED) */
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const res = await api.get(`/quiz?category=${category}&difficulty=${mode}`);
+        const res = await api.get(
+          `/quiz/questions?category=${category}&difficulty=${mode}`
+        );
 
-        let fetched = res.data.data || [];
+        // ✅ FIX 1: correct response key
+        let fetched = res.data.questions || [];
 
         if (!fetched.length) {
           setQuestions([]);
@@ -53,34 +55,16 @@ export default function Quiz() {
           return;
         }
 
-        // Shuffle questions
+        // shuffle questions
         fetched = shuffleArray(fetched);
 
-        // Shuffle options
+        // shuffle options
         fetched = fetched.map((q) => ({
           ...q,
           options: shuffleArray(q.options),
         }));
 
-        if (mode === "quick") {
-          fetched = fetched.slice(0, 5);
-        }
-
         setQuestions(fetched);
-
-        // Restore progress
-        let saved = null;
-        try {
-          saved = JSON.parse(localStorage.getItem("quiz-progress"));
-        } catch {
-          saved = null;
-        }
-
-        if (saved && saved.category === category) {
-          setCurrent(saved.current || 0);
-          setAnswers(saved.answers || []);
-        }
-
         setLoading(false);
       } catch (err) {
         console.error("Fetch error:", err);
@@ -91,9 +75,9 @@ export default function Quiz() {
     if (isAuthenticated && category) {
       fetchQuestions();
     }
-  }, [isAuthenticated, category, mode]); // ❌ removed shuffleArray
+  }, [isAuthenticated, category, mode]);
 
-  /* ✅ NEXT */
+  /* NEXT */
   const handleNext = useCallback(() => {
     setSelected(null);
     setShowAnswer(false);
@@ -101,7 +85,7 @@ export default function Quiz() {
     setCurrent((prev) => prev + 1);
   }, []);
 
-  /* ✅ TIMER */
+  /* TIMER */
   useEffect(() => {
     clearInterval(timerRef.current);
 
@@ -120,15 +104,7 @@ export default function Quiz() {
     return () => clearInterval(timerRef.current);
   }, [current, questions.length, mode, handleNext]);
 
-  /* ✅ SAVE PROGRESS */
-  useEffect(() => {
-    localStorage.setItem(
-      "quiz-progress",
-      JSON.stringify({ current, answers, category })
-    );
-  }, [current, answers, category]);
-
-  /* ✅ CLICK */
+  /* CLICK */
   const handleOptionClick = (opt) => {
     if (showAnswer) return;
 
@@ -139,10 +115,10 @@ export default function Quiz() {
     updated[current] = opt;
     setAnswers(updated);
 
-    setTimeout(handleNext, 2000);
+    setTimeout(handleNext, 1500);
   };
 
-  /* ✅ SUBMIT */
+  /* SUBMIT */
   const handleSubmit = async () => {
     try {
       await api.post("/quiz/submit", {
@@ -152,8 +128,6 @@ export default function Quiz() {
       });
 
       localStorage.removeItem("quiz-progress");
-      localStorage.removeItem("quiz-mode");
-      localStorage.removeItem("quiz-category");
 
       navigate("/leaderboard");
     } catch (err) {
@@ -162,31 +136,19 @@ export default function Quiz() {
     }
   };
 
-  /* ✅ LOADING */
-  if (authLoading) {
-  return <h2 className="center">Loading...</h2>;
-}
+  /* UI STATES */
+  if (authLoading) return <h2 className="center">Loading...</h2>;
+  if (!category || !mode) return <h2 className="center">Redirecting...</h2>;
+  if (loading) return <h2 className="center">Loading questions...</h2>;
 
-if (!category || !mode) {
-  return <h2 className="center">Redirecting...</h2>;
-}
-
-if (loading) {
-  return <h2 className="center">Loading questions...</h2>;
-}
-
-  /* ✅ NO QUESTIONS */
   if (!questions.length) {
     return <h2 className="center">No questions available 😕</h2>;
   }
 
-  /* ✅ END */
   if (current >= questions.length) {
     return (
       <div className="submit-screen">
         <h2>🎯 Ready to Submit?</h2>
-        <p>You completed {questions.length} questions</p>
-
         <button className="submit-btn" onClick={handleSubmit}>
           🚀 Submit Quiz
         </button>
@@ -198,62 +160,35 @@ if (loading) {
 
   return (
     <div className="quiz-page">
-      <div className="quiz-header">
-        <h1>🚀 {category} ({mode})</h1>
+      <h2>{category} ({mode})</h2>
 
-        <div className="progress-container">
-          <span>{current + 1} / {questions.length}</span>
-          <div className="progress">
-            <div
-              className="progress-bar"
-              style={{
-                width: `${((current + 1) / questions.length) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
+      <h3>{q.question}</h3>
 
-        {mode !== "practice" && <div className="timer">{time}s</div>}
+      <div className="options">
+        {q.options.map((opt, i) => {
+          let status = "";
+
+          if (showAnswer) {
+            if (opt === q.answer) status = "correct";
+            else if (opt === selected) status = "wrong";
+          }
+
+          return (
+            <button
+              key={i}
+              className={`option-btn ${status}`}
+              onClick={() => handleOptionClick(opt)}
+              disabled={showAnswer}
+            >
+              {opt}
+            </button>
+          );
+        })}
       </div>
 
-      <div className={`quiz-card ${showAnswer ? "flip" : ""}`}>
-        <div className="card-inner">
-          <div className="card-front">
-            <h2>{q.question}</h2>
-
-            <div className="options">
-              {q.options.map((opt, i) => {
-                let status = "";
-
-                if (showAnswer) {
-                  if (opt === q.answer) status = "correct";
-                  else if (opt === selected) status = "wrong";
-                }
-
-                return (
-                  <button
-                    key={i}
-                    className={`option-btn ${status}`}
-                    onClick={() => handleOptionClick(opt)}
-                    disabled={showAnswer}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="card-back">
-            <h3>Correct Answer</h3>
-            <p>{q.answer}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="quiz-footer">
-        Question {current + 1} of {questions.length}
-      </div>
+      <p>
+        Question {current + 1} / {questions.length}
+      </p>
     </div>
   );
 }
