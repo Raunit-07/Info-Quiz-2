@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
-import LeaderboardRow from "../components/LeaderboardRow";
-import TopThree from "../components/TopThree";
+import { motion } from "framer-motion";
 
 export default function Leaderboard() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -15,8 +13,7 @@ export default function Leaderboard() {
         const res = await api.get("/quiz/leaderboard");
         setData(res.data.data || []);
       } catch (err) {
-        console.error("Error fetching leaderboard:", err);
-        setError("Unable to load leaderboard.");
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -25,88 +22,58 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, []);
 
-  if (loading) {
-    return <h2 style={styles.center}>Loading Leaderboard...</h2>;
-  }
+  if (loading) return <h2 className="center">Loading...</h2>;
+
+  const top3 = data.slice(0, 3);
+  const rest = data.slice(3);
 
   return (
-    <div style={styles.page}>
+    <div className="leaderboard-page">
       <Navbar />
 
-      <div style={styles.card}>
-        <h1 style={styles.title}>🏆 Leaderboard</h1>
+      <h1 className="title">🏆 Leaderboard</h1>
 
-        {error ? (
-          <p style={styles.error}>{error}</p>
-        ) : data.length === 0 ? (
-          <p style={styles.empty}>No data available</p>
-        ) : (
-          <>
-            {/* 🔥 Top 3 */}
-            <TopThree data={data} />
+      {/* 🏆 TOP 3 PODIUM */}
+      <div className="podium">
+        {top3.map((user, i) => (
+          <motion.div
+            key={i}
+            className={`podium-card rank-${i}`}
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: i * 0.2 }}
+          >
+            <div className="rank">{i + 1}</div>
 
-            {/* 🔥 Rest */}
-            <div>
-              {data.slice(3).map((user, index) => (
-                <LeaderboardRow
-                  key={index}
-                  user={user}
-                  index={index + 3}
-                />
-              ))}
+            <div className="avatar">
+              {user.userId?.username?.charAt(0).toUpperCase()}
             </div>
-          </>
-        )}
+
+            <h3>{user.userId?.username}</h3>
+            <p>{user.score} pts</p>
+
+            {/* 🔥 Fire for #1 */}
+            {i === 0 && <div className="fire">🔥🔥🔥</div>}
+          </motion.div>
+        ))}
       </div>
 
-      {/* animation keyframes */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
+      {/* 📊 LIST */}
+      <div className="list">
+        {rest.map((user, index) => (
+          <motion.div
+            key={index}
+            className="row"
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: index * 0.05 }}
+          >
+            <span>{index + 4}</span>
+            <span>{user.userId?.username}</span>
+            <span>{user.score} pts</span>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#0f172a",
-    padding: "20px",
-  },
-  card: {
-    maxWidth: "700px",
-    margin: "auto",
-    padding: "30px",
-    borderRadius: "20px",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(20px)",
-    color: "#fff",
-  },
-  title: {
-    textAlign: "center",
-    marginBottom: "20px",
-  },
-  center: {
-    textAlign: "center",
-    marginTop: "50px",
-  },
-  error: {
-    color: "red",
-    textAlign: "center",
-  },
-  empty: {
-    textAlign: "center",
-    opacity: 0.7,
-  },
-};
