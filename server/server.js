@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import path from "path";
 
 import User from "./models/User.js";
 import Score from "./models/Score.js";
@@ -19,7 +20,7 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 /* =========================
-   ✅ MONGODB CONNECTION
+   ✅ MONGODB CONNECTION (ONLY ONCE)
 ========================= */
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
@@ -369,11 +370,24 @@ const questionsData = {
   ],
 };
 
-  //  ✅ MONGODB CONNECTION
+/* =========================
+   ✅ GET QUESTIONS API (VERY IMPORTANT)
+========================= */
+app.get("/api/quiz/questions", (req, res) => {
+  const { category, difficulty } = req.query;
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+  if (!category || !questionsData[category]) {
+    return res.status(400).json({ error: "Invalid category" });
+  }
+
+  let questions = questionsData[category];
+
+  if (difficulty) {
+    questions = questions.filter(q => q.difficulty === difficulty);
+  }
+
+  res.json({ questions });
+});
 
 /* =========================
    ✅ AUTH ROUTES
@@ -387,9 +401,17 @@ app.post("/api/auth/register", async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    await User.create({ username, password: hashed });
+    const user = await User.create({ username, password: hashed });
 
-    res.status(201).json({ success: true });
+    // ✅ RETURN TOKEN (IMPORTANT)
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({ token });
+
   } catch {
     res.status(500).json({ error: "Registration failed" });
   }
@@ -412,6 +434,7 @@ app.post("/api/auth/login", async (req, res) => {
     );
 
     res.json({ token });
+
   } catch {
     res.status(500).json({ error: "Login failed" });
   }
@@ -468,16 +491,34 @@ app.get("/api/quiz/leaderboard", async (req, res) => {
   }
 });
 
+/* =========================
+   ✅ HEALTH CHECK
+========================= */
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
-// Example route test
+/* =========================
+   ✅ ROOT TEST
+========================= */
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
+/* =========================
+   ✅ SERVE FRONTEND (FIXED POSITION)
+========================= */
+const __dirname = new URL('.', import.meta.url).pathname;
 
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/build/index.html"));
+});
+
+/* =========================
+   ✅ START SERVER (LAST)
+========================= */
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {

@@ -15,18 +15,19 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 🔥 Redirect if already logged in
+  // 🔥 Wake backend
+  useEffect(() => {
+    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
+      .then(() => console.log("Backend awake"))
+      .catch(() => console.log("Waking backend..."));
+  }, []);
+
+  // 🔐 Redirect if logged in
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-  fetch("https://quiz-backend-ygl1.onrender.com/api/health")
-    .then(() => console.log("Backend awake"))
-    .catch(() => console.log("Waking backend..."));
-}, []);
 
   const checkStrength = (pass) => {
     if (pass.length < 6) return 'Weak';
@@ -50,25 +51,15 @@ export default function Register() {
     try {
       setLoading(true);
 
-      console.log("Sending request...");
-
-      // ✅ FIXED API PATH
-      const res = await api.post('/api/auth/register', {
+      const res = await api.post('/auth/register', {   // ✅ FIXED HERE
         username,
         password
       });
 
-      console.log("Response:", res.data);
-
-      // ✅ Save token
       signIn(res.data.token);
-
-      // ✅ Redirect
       navigate('/dashboard');
 
     } catch (err) {
-      console.log("ERROR:", err.response?.data || err.message);
-
       const errorMessage =
         err.response?.data?.error ||
         err.response?.data ||
@@ -134,12 +125,12 @@ export default function Register() {
           {error && <p className="error">{error}</p>}
 
           <button
-          className="login-btn"
-          onClick={handleRegister}
-          disabled={loading}
-        >
-          {loading ? 'Registering...' : 'Register'}
-        </button>
+            className="login-btn"
+            onClick={handleRegister}
+            disabled={loading}
+          >
+            {loading ? 'Registering...' : 'Register'}
+          </button>
 
           <p className="toggle">
             Already have an account?

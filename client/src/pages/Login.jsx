@@ -15,11 +15,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ✅ Redirect if already logged in
   useEffect(() => {
-  if (isAuthenticated) {
-    navigate('/dashboard'); 
-  }
-}, [isAuthenticated, navigate]);
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // 🔥 NEW: Wake backend (VERY IMPORTANT)
+  useEffect(() => {
+    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
+      .then(() => console.log("Backend awake"))
+      .catch(() => console.log("Waking backend..."));
+  }, []);
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -31,16 +39,25 @@ export default function Login() {
       setLoading(true);
       setError('');
 
-      const res = await api.post('/api/auth/login', {
+      const res = await api.post('/auth/login', {   // ✅ FIXED (no double /api)
         username,
         password,
       });
 
       signIn(res.data.token);
       navigate('/dashboard');
+
     } catch (err) {
-      const errorMessage = err.response?.data?.error || err.response?.data || 'Login failed. Please try again.';
-      setError(typeof errorMessage === 'string' ? errorMessage : 'Login failed. Please try again.');
+      const errorMessage =
+        err.response?.data?.error ||
+        err.response?.data ||
+        'Login failed. Please try again.';
+
+      setError(
+        typeof errorMessage === 'string'
+          ? errorMessage
+          : 'Login failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
