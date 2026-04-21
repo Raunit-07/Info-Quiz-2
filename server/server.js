@@ -20,7 +20,7 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 /* =========================
-   ✅ MONGODB CONNECTION (ONLY ONCE)
+   ✅ MONGODB CONNECTION
 ========================= */
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
@@ -371,7 +371,7 @@ const questionsData = {
 };
 
 /* =========================
-   ✅ GET QUESTIONS API (VERY IMPORTANT)
+   ✅ GET QUESTIONS API (FIXED)
 ========================= */
 app.get("/api/quiz/questions", (req, res) => {
   const { category, difficulty } = req.query;
@@ -387,14 +387,16 @@ app.get("/api/quiz/questions", (req, res) => {
   // filter by difficulty
   if (difficulty) {
     questions = questions.filter(
-      q => q.difficulty.toLowerCase() === difficulty.toLowerCase()
+      (q) => q.difficulty.toLowerCase() === difficulty.toLowerCase()
     );
   }
 
-  // limit questions (optional)
-  const limited = questions.slice(0, 5);
+  // fallback if no questions after filter
+  if (!questions.length) {
+    questions = questionsData[category];
+  }
 
-  res.json({ questions: limited });
+  res.json({ data: questions }); // ✅ IMPORTANT CHANGE
 });
 
 /* =========================
@@ -408,10 +410,8 @@ app.post("/api/auth/register", async (req, res) => {
     if (exists) return res.status(400).json({ error: "User exists" });
 
     const hashed = await bcrypt.hash(password, 10);
-
     const user = await User.create({ username, password: hashed });
 
-    // ✅ RETURN TOKEN (IMPORTANT)
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
@@ -419,7 +419,6 @@ app.post("/api/auth/register", async (req, res) => {
     );
 
     res.status(201).json({ token });
-
   } catch {
     res.status(500).json({ error: "Registration failed" });
   }
@@ -442,7 +441,6 @@ app.post("/api/auth/login", async (req, res) => {
     );
 
     res.json({ token });
-
   } catch {
     res.status(500).json({ error: "Login failed" });
   }
@@ -474,7 +472,7 @@ app.post("/api/quiz/submit", verifyToken, async (req, res) => {
   try {
     await Score.create({
       userId: req.user.id,
-      score
+      score,
     });
 
     res.json({ success: true });
@@ -507,30 +505,28 @@ app.get("/api/health", (req, res) => {
 });
 
 /* =========================
-   ✅ ROOT TEST
+   ✅ ROOT
 ========================= */
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-
-
 /* =========================
-   ✅ START SERVER (LAST)
+   ✅ SERVE FRONTEND (LAST)
 ========================= */
-const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, () => {
-  console.log("Server running on", PORT);
-});
-
-/* =========================
-   ✅ SERVE FRONTEND (FIXED POSITION)
-========================= */
-const __dirname = new URL('.', import.meta.url).pathname;
+const __dirname = new URL(".", import.meta.url).pathname;
 
 app.use(express.static(path.join(__dirname, "../client/build")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/build/index.html"));
+});
+
+/* =========================
+   ✅ START SERVER
+========================= */
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, () => {
+  console.log("Server running on", PORT);
 });
