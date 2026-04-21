@@ -56,8 +56,9 @@ export default function Register() {
         password
       });
 
-      signIn(res.data.token);
-      navigate('/dashboard');
+      navigate('/login', {
+  state: { message: "Registration successful 🎉 Please login." }
+});
 
     } catch (err) {
       const errorMessage =
