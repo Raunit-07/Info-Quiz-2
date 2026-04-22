@@ -50,12 +50,18 @@ export default function Leaderboard() {
   const top3 = data.slice(0, 3);
 
   const getMedal = (rank) => {
-    return ["🥇", "🥈", "🥉"][rank] || "";
-  };
+  if (rank === 0) return "🥇";
+  if (rank === 1) return "🥈";
+  if (rank === 2) return "🥉";
+  return "";
+};
 
-  const chartData = data.slice(0, 10).map((item) => ({
-    username: item.userId?.username || "User",
-    score: item.score,
+// ✅ CHART DATA (SAFE + NO CRASH)
+const chartData = (data || [])
+  .slice(0, 10)
+  .map((item) => ({
+    username: item?.userId?.username || "User",
+    score: typeof item?.score === "number" ? item.score : 0,
   }));
 
   return (
@@ -65,22 +71,17 @@ export default function Leaderboard() {
       <h1 className="title">🏆 Leaderboard</h1>
 
       {/* 📊 CHART (FIXED HEIGHT ISSUE) */}
-      <div
-        style={{
-          width: "90%",
-          maxWidth: "700px",
-          height: "300px",
-          margin: "20px auto",
-        }}
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
-            <XAxis dataKey="username" stroke="#fff" />
-            <Tooltip />
-            <Bar dataKey="score" radius={[10, 10, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <div style={{ width: "100%", height: 250, marginBottom: "30px" }}>
+  {data.length > 0 && (
+    <ResponsiveContainer>
+      <BarChart data={chartData}>
+        <XAxis dataKey="username" stroke="#ccc" />
+        <Tooltip />
+        <Bar dataKey="score" fill="#22c55e" radius={[10,10,0,0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )}
+</div>
 
       {/* 🏆 TOP 3 */}
       <div className="podium">

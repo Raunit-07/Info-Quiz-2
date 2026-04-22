@@ -23,28 +23,21 @@ export function AuthProvider({ children }) {
   }, []);
 
   /* ✅ LOGIN */
-  const signIn = (token, username) => {
-    if (!token) return;
-
+ const signIn = (token, username) => {
+  if (token) {
     localStorage.setItem("token", token);
-
-    if (username) {
-      localStorage.setItem("username", username); // 🔥 IMPORTANT
-    }
-
+    localStorage.setItem("username", username); // ✅ ADD THIS
     setIsAuthenticated(true);
-
     navigate("/dashboard");
-  };
+  }
+};
 
   /* 🚪 LOGOUT */
   const logout = () => {
-    localStorage.clear();
-
-    setIsAuthenticated(false);
-
-    navigate("/login");
-  };
+  localStorage.clear(); // ✅ FULL CLEAN
+  setIsAuthenticated(false);
+  navigate("/login");
+};
 
   return (
     <AuthContext.Provider

@@ -244,6 +244,10 @@ function verifyToken(req, res, next) {
 app.post("/api/quiz/submit", verifyToken, async (req, res) => {
   const { score } = req.body;
 
+  if (typeof score !== "number") {
+    return res.status(400).json({ error: "Invalid score" });
+  }
+
   try {
     await Score.create({
       userId: req.user.id,
@@ -251,7 +255,8 @@ app.post("/api/quiz/submit", verifyToken, async (req, res) => {
     });
 
     res.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.log(err);
     res.status(500).json({ error: "Failed" });
   }
 });

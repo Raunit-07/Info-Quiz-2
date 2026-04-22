@@ -22,6 +22,7 @@ export default function Quiz() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [time, setTime] = useState(QUESTION_TIME);
   const [loading, setLoading] = useState(true);
+  const [score, setScore] = useState(0);
 
   const timerRef = useRef(null);
 
@@ -104,14 +105,38 @@ export default function Quiz() {
     setCurrent((prev) => prev + 1);
   }, []);
 
-  const handleOptionClick = (opt) => {
-    if (showAnswer) return;
 
-    setSelected(opt);
-    setShowAnswer(true);
+  const handleSubmit = async () => {
+  try {
+    await api.post("/quiz/submit", {
+      score,
+    });
 
-    setTimeout(handleNext, 1200);
-  };
+    // optional cache clear
+    localStorage.removeItem(`${category}-${mode}`);
+
+    navigate("/leaderboard");
+  } catch (err) {
+    console.error("Submit error:", err);
+  }
+};    
+
+  
+    const handleOptionClick = (opt) => {
+  if (showAnswer) return;
+
+  setSelected(opt);
+  setShowAnswer(true);
+
+  // ✅ SCORE LOGIC
+  if (opt === questions[current].answer) {
+    setScore((prev) => prev + 1);
+  }
+
+  setTimeout(handleNext, 1200);
+};
+
+
 
   /* ⏳ LOADING */
   if (authLoading || loading) {
@@ -128,15 +153,18 @@ export default function Quiz() {
   }
 
   if (current >= questions.length) {
-    return (
-      <div className="quiz-bg center">
-        <h1>🎉 Quiz Completed</h1>
-        <button onClick={() => navigate("/leaderboard")}>
-          View Leaderboard
-        </button>
-      </div>
-    );
-  }
+  return (
+    <div className="quiz-bg center">
+      <h1>🎉 Quiz Completed</h1>
+
+      <h2>Your Score: {score} / {questions.length}</h2>
+
+      <button onClick={handleSubmit}>
+        🚀 Submit & View Leaderboard
+      </button>
+    </div>
+  );
+}
 
   const q = questions[current];
   const progress = ((current + 1) / questions.length) * 100;
