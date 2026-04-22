@@ -25,21 +25,20 @@ export default function Quiz() {
 
   const timerRef = useRef(null);
 
-  /* 🔐 PROTECT ROUTE */
+  /* 🔐 PROTECT */
   useEffect(() => {
     if (!location.state || !category || !mode) {
       navigate("/dashboard");
     }
   }, [location.state, category, mode, navigate]);
 
-  /* 🚀 FETCH QUESTIONS (FIXED) */
+  /* 🚀 FETCH */
   useEffect(() => {
     if (!isAuthenticated || !category) return;
 
     const cacheKey = `${category}-${mode}`;
     const cached = localStorage.getItem(cacheKey);
 
-    // ⚡ INSTANT LOAD FROM CACHE
     if (cached) {
       setQuestions(JSON.parse(cached));
       setLoading(false);
@@ -56,9 +55,7 @@ export default function Quiz() {
 
         let fetched = res.data.questions || [];
 
-        // 🔁 RETRY IF EMPTY
         if (!fetched.length) {
-          console.warn("Retrying...");
           setTimeout(fetchQuestions, 2000);
           return;
         }
@@ -69,14 +66,9 @@ export default function Quiz() {
         }));
 
         setQuestions(fetched);
-
-        // 💾 CACHE SAVE
         localStorage.setItem(cacheKey, JSON.stringify(fetched));
-
       } catch (err) {
-        console.error("Fetch error:", err);
-
-        // 🔁 RETRY ON ERROR
+        console.error(err);
         setTimeout(fetchQuestions, 3000);
       } finally {
         setLoading(false);
@@ -105,7 +97,6 @@ export default function Quiz() {
     return () => clearInterval(timerRef.current);
   }, [current, questions.length]);
 
-  /* ➡ NEXT */
   const handleNext = useCallback(() => {
     setSelected(null);
     setShowAnswer(false);
@@ -113,7 +104,6 @@ export default function Quiz() {
     setCurrent((prev) => prev + 1);
   }, []);
 
-  /* 🎯 CLICK */
   const handleOptionClick = (opt) => {
     if (showAnswer) return;
 
@@ -123,25 +113,23 @@ export default function Quiz() {
     setTimeout(handleNext, 1200);
   };
 
-  /* ⏳ LOADING UI */
+  /* ⏳ LOADING */
   if (authLoading || loading) {
     return (
-      <div className="center">
-        <h2>🚀 Loading questions...</h2>
-        <p>First time may take 10–20s (Render server waking up)</p>
+      <div className="quiz-bg center">
+        <h2>🚀 Loading Quiz...</h2>
+        <p>Server waking up (first load may take time)</p>
       </div>
     );
   }
 
-  /* ❌ NO QUESTIONS */
   if (!questions.length) {
     return <h2 className="center">No questions 😕</h2>;
   }
 
-  /* 🎉 END */
   if (current >= questions.length) {
     return (
-      <div className="center">
+      <div className="quiz-bg center">
         <h1>🎉 Quiz Completed</h1>
         <button onClick={() => navigate("/leaderboard")}>
           View Leaderboard
@@ -151,52 +139,66 @@ export default function Quiz() {
   }
 
   const q = questions[current];
+  const progress = ((current + 1) / questions.length) * 100;
 
   return (
-    <div className="quiz-container">
+    <div className="quiz-bg">
 
       {/* HEADER */}
       <div className="quiz-header">
         <h2>{category} • {mode}</h2>
+
         <div className="progress-bar">
-          <div
+          <motion.div
             className="progress-fill"
-            style={{
-              width: `${((current + 1) / questions.length) * 100}%`,
-            }}
+            animate={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* TIMER */}
-      <div className="timer">{time}s</div>
+      {/* TIMER CIRCLE */}
+      <div className="timer-ring">
+        <svg>
+          <circle cx="40" cy="40" r="35" />
+          <circle
+            cx="40"
+            cy="40"
+            r="35"
+            style={{
+              strokeDashoffset: 220 - (time / QUESTION_TIME) * 220,
+            }}
+          />
+        </svg>
+        <span>{time}s</span>
+      </div>
 
       {/* CARD */}
       <AnimatePresence mode="wait">
         <motion.div
           key={current}
-          initial={{ x: 200, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -200, opacity: 0 }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.8, opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="card"
+          className="quiz-card"
         >
           <h3>{q.question}</h3>
 
           <div className="options">
             {q.options.map((opt, i) => {
-              let className = "option";
+              let status = "";
 
               if (showAnswer) {
-                if (opt === q.answer) className += " correct";
-                else if (opt === selected) className += " wrong";
+                if (opt === q.answer) status = "correct";
+                else if (opt === selected) status = "wrong";
               }
 
               return (
                 <motion.button
                   key={i}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={className}
+                  className={`option ${status}`}
                   onClick={() => handleOptionClick(opt)}
                 >
                   {opt}

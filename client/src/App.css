@@ -970,3 +970,99 @@ body {
 .score {
   font-weight: bold;
 }
+
+
+
+
+
+.quiz-bg {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #6d28d9, #1e1b4b);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* HEADER */
+.quiz-header {
+  width: 60%;
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #22c55e;
+  border-radius: 10px;
+}
+
+/* TIMER */
+.timer-ring {
+  position: relative;
+  margin: 20px;
+}
+
+.timer-ring svg {
+  width: 80px;
+  height: 80px;
+}
+
+.timer-ring circle {
+  fill: none;
+  stroke-width: 5;
+  stroke: rgba(255,255,255,0.2);
+}
+
+.timer-ring circle:nth-child(2) {
+  stroke: #22c55e;
+  stroke-dasharray: 220;
+  transition: 0.5s linear;
+}
+
+.timer-ring span {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+}
+
+/* CARD */
+.quiz-card {
+  backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.1);
+  padding: 30px;
+  border-radius: 20px;
+  width: 400px;
+  text-align: center;
+}
+
+/* OPTIONS */
+.option {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  transition: 0.3s;
+}
+
+.option:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.option.correct {
+  background: #22c55e;
+}
+
+.option.wrong {
+  background: #ef4444;
+}
