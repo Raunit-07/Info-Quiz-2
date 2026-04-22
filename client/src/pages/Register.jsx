@@ -35,26 +35,26 @@ export default function Register() {
     return 'Medium';
   };
 
-  const handleRegister = async () => {
-    setError('');
+  const handleRegister = async (e) => {
+  e.preventDefault();
 
-    if (!username || !password || !confirm) {
-      setError('All fields are required');
-      return;
-    }
+  try {
+    console.log("Sending request...");
 
-    if (password !== confirm) {
-      setError('Passwords do not match');
-      return;
-    }
+    const res = await api.post("/auth/register", {
+      username,
+      password,
+    });
 
-    try {
-      setLoading(true);
+    console.log("Response:", res.data);
 
-       const res = await api.post("/auth/register", {
-  username,
-  password,
-});
+    // ✅ after success (IMPORTANT)
+    navigate("/login");
+
+  } catch (err) {
+    console.error("Register error:", err.response || err);
+  }
+};
 
   // 👇 THIS IS WHERE YOU ADD IT
   navigate('/login', {

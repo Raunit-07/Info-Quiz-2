@@ -268,11 +268,15 @@ app.get("/api/quiz/leaderboard", async (req, res) => {
   try {
     const data = await Score.find()
       .sort({ score: -1 })
-      .limit(10)
-      .populate("userId", "username");
+      .limit(20)
+      .populate({
+        path: "userId",
+        select: "username",
+      });
 
     res.json({ data });
-  } catch {
+  } catch (err) {
+    console.log(err);
     res.status(500).json({ error: "Failed" });
   }
 });
