@@ -6,7 +6,7 @@ import '../App.css';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { isAuthenticated, signIn, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,14 +15,14 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 🔥 Wake backend
+  /* 🔥 Wake backend */
   useEffect(() => {
     fetch("https://quiz-backend-yg1i.onrender.com/api/health")
       .then(() => console.log("Backend awake"))
       .catch(() => console.log("Waking backend..."));
   }, []);
 
-  // 🔐 Redirect if logged in
+  /* 🔐 Redirect if already logged in */
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
@@ -36,33 +36,37 @@ export default function Register() {
   };
 
   const handleRegister = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    console.log("Sending request...");
+    if (!username || !password || !confirm) {
+      return setError("All fields are required");
+    }
 
-    const res = await api.post("/auth/register", {
-      username,
-      password,
-    });
+    if (password !== confirm) {
+      return setError("Passwords do not match");
+    }
 
-    console.log("Response:", res.data);
+    try {
+      setLoading(true);
+      setError('');
 
-    // ✅ after success (IMPORTANT)
-    navigate("/login");
+      console.log("Sending request...");
 
-  } catch (err) {
-    console.error("Register error:", err.response || err);
-  }
-};
+      const res = await api.post("/auth/register", {
+        username,
+        password,
+      });
 
-  // 👇 THIS IS WHERE YOU ADD IT
-  navigate('/login', {
-    state: { message: "Registration successful 🎉 Please login." }
-  });
+      console.log("Response:", res.data);
 
+      // ✅ SUCCESS REDIRECT WITH MESSAGE
+      navigate('/login', {
+        state: { message: "Registration successful 🎉 Please login." }
+      });
 
     } catch (err) {
+      console.error("Register error:", err.response || err);
+
       const errorMessage =
         err.response?.data?.error ||
         err.response?.data ||
@@ -85,6 +89,7 @@ export default function Register() {
         </div>
       ) : (
         <div className="login-card">
+
           <h3 className="back" onClick={() => navigate('/login')}>
             ← Registration
           </h3>
@@ -139,6 +144,7 @@ export default function Register() {
             Already have an account?
             <span onClick={() => navigate('/login')}> Login</span>
           </p>
+
         </div>
       )}
     </div>
