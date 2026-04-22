@@ -51,10 +51,10 @@ export default function Register() {
     try {
       setLoading(true);
 
-       const res = await api.post('/api/auth/register', {
-    username,
-    password
-  });
+       const res = await api.post("/auth/register", {
+  username,
+  password,
+});
 
   // 👇 THIS IS WHERE YOU ADD IT
   navigate('/login', {
