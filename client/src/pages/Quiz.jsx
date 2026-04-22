@@ -110,16 +110,15 @@ export default function Quiz() {
   try {
     await api.post("/quiz/submit", {
       score,
+      category,     // ✅ ADD
+      difficulty: mode, // ✅ ADD
     });
-
-    // optional cache clear
-    localStorage.removeItem(`${category}-${mode}`);
 
     navigate("/leaderboard");
   } catch (err) {
     console.error("Submit error:", err);
   }
-};    
+};   
 
   
     const handleOptionClick = (opt) => {

@@ -242,7 +242,7 @@ function verifyToken(req, res, next) {
    ✅ QUIZ SUBMIT
 ========================= */
 app.post("/api/quiz/submit", verifyToken, async (req, res) => {
-  const { score } = req.body;
+  const { score, category, difficulty } = req.body;
 
   if (typeof score !== "number") {
     return res.status(400).json({ error: "Invalid score" });
@@ -250,9 +250,11 @@ app.post("/api/quiz/submit", verifyToken, async (req, res) => {
 
   try {
     await Score.create({
-      userId: req.user.id,
-      score,
-    });
+  userId: req.user.id,
+  score,
+  category,
+  difficulty,
+});
 
     res.json({ success: true });
   } catch (err) {
@@ -262,21 +264,68 @@ app.post("/api/quiz/submit", verifyToken, async (req, res) => {
 });
 
 /* =========================
-   ✅ LEADERBOARD
+   ✅ LEADERBOARD (ADVANCED)
 ========================= */
+
+// 🏆 1. OVERALL
 app.get("/api/quiz/leaderboard", async (req, res) => {
   try {
     const data = await Score.find()
       .sort({ score: -1 })
-      .limit(20)
-      .populate({
-        path: "userId",
-        select: "username",
-      });
+      .populate("userId", "username");
 
     res.json({ data });
-  } catch (err) {
-    console.log(err);
+  } catch {
+    res.status(500).json({ error: "Failed" });
+  }
+});
+
+// 🎯 2. MODE BASED
+app.get("/api/quiz/leaderboard/mode/:difficulty", async (req, res) => {
+  try {
+    const { difficulty } = req.params;
+
+    const data = await Score.find({ difficulty })
+      .sort({ score: -1 })
+      .populate("userId", "username");
+
+    res.json({ data });
+  } catch {
+    res.status(500).json({ error: "Failed" });
+  }
+});
+
+// 📚 3. CATEGORY BASED
+app.get("/api/quiz/leaderboard/category/:category", async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    const data = await Score.find({ category })
+      .sort({ score: -1 })
+      .populate("userId", "username");
+
+    res.json({ data });
+  } catch {
+    res.status(500).json({ error: "Failed" });
+  }
+});
+
+// 🔍 4. FILTER (BEST ONE)
+app.get("/api/quiz/leaderboard/filter", async (req, res) => {
+  try {
+    const { category, difficulty } = req.query;
+
+    const query = {};
+
+    if (category) query.category = category;
+    if (difficulty) query.difficulty = difficulty;
+
+    const data = await Score.find(query)
+      .sort({ score: -1 })
+      .populate("userId", "username");
+
+    res.json({ data });
+  } catch {
     res.status(500).json({ error: "Failed" });
   }
 });
