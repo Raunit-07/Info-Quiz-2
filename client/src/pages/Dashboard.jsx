@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import ModeSelector from "../components/ModeSelector";
 import CategorySelector from "../components/CategorySelector";
 import { useNavigate } from "react-router-dom";
+import api from "../services/api"; // ✅ ADD THIS
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -9,6 +10,14 @@ export default function Dashboard() {
   const [mode, setMode] = useState(null);
   const [category, setCategory] = useState(null);
 
+  /* 🔥 WAKE BACKEND */
+  useEffect(() => {
+    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
+      .then(() => console.log("Backend awake"))
+      .catch(() => console.log("Waking backend..."));
+  }, []);
+
+  /* 🧹 CLEAR OLD DATA */
   useEffect(() => {
     localStorage.removeItem("quiz-mode");
     localStorage.removeItem("quiz-category");
@@ -21,6 +30,35 @@ export default function Dashboard() {
   useEffect(() => {
     if (category) localStorage.setItem("quiz-category", category);
   }, [category]);
+
+  /* 🚀 PRELOAD QUESTIONS (KEY FIX) */
+  useEffect(() => {
+    if (!mode || !category) return;
+
+    const preload = async () => {
+      try {
+        console.log("Preloading quiz...");
+
+        const res = await api.get(
+          `/quiz/questions?category=${category}&difficulty=${mode}`
+        );
+
+        const questions = res.data.questions || [];
+
+        if (questions.length) {
+          localStorage.setItem(
+            `${category}-${mode}`,
+            JSON.stringify(questions)
+          );
+          console.log("⚡ Questions cached");
+        }
+      } catch (err) {
+        console.log("Preload failed (will fetch later)");
+      }
+    };
+
+    preload();
+  }, [mode, category]);
 
   const startQuiz = () => {
     if (!mode || !category) {
@@ -35,7 +73,6 @@ export default function Dashboard() {
 
   return (
     <div style={styles.container}>
-      {/* Background glow */}
       <div style={styles.glow1}></div>
       <div style={styles.glow2}></div>
 
@@ -43,22 +80,18 @@ export default function Dashboard() {
         <h1 style={styles.title}>Welcome back 👋</h1>
         <p style={styles.subtitle}>Ready to challenge your mind?</p>
 
-        {/* Divider */}
         <div style={styles.divider}></div>
 
-        {/* Mode */}
         <ModeSelector
           selectedMode={mode}
           setSelectedMode={setMode}
         />
 
-        {/* Category */}
         <CategorySelector
           selectedCategory={category}
           setSelectedCategory={setCategory}
         />
 
-        {/* CTA */}
         <button
           onClick={startQuiz}
           disabled={!mode || !category}

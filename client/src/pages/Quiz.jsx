@@ -11,7 +11,7 @@ function shuffleArray(array) {
 export default function Quiz() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, loading: authLoading, logout } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const { category, mode } = location.state || {};
   const QUESTION_TIME = 15;
@@ -25,22 +25,43 @@ export default function Quiz() {
 
   const timerRef = useRef(null);
 
-  /* 🔐 PROTECT */
+  /* 🔐 PROTECT ROUTE */
   useEffect(() => {
     if (!location.state || !category || !mode) {
       navigate("/dashboard");
     }
   }, [location.state, category, mode, navigate]);
 
-  /* 🔥 FETCH */
+  /* 🚀 FETCH QUESTIONS (FIXED) */
   useEffect(() => {
+    if (!isAuthenticated || !category) return;
+
+    const cacheKey = `${category}-${mode}`;
+    const cached = localStorage.getItem(cacheKey);
+
+    // ⚡ INSTANT LOAD FROM CACHE
+    if (cached) {
+      setQuestions(JSON.parse(cached));
+      setLoading(false);
+      return;
+    }
+
     const fetchQuestions = async () => {
       try {
+        setLoading(true);
+
         const res = await api.get(
           `/quiz/questions?category=${category}&difficulty=${mode}`
         );
 
         let fetched = res.data.questions || [];
+
+        // 🔁 RETRY IF EMPTY
+        if (!fetched.length) {
+          console.warn("Retrying...");
+          setTimeout(fetchQuestions, 2000);
+          return;
+        }
 
         fetched = shuffleArray(fetched).map((q) => ({
           ...q,
@@ -48,19 +69,28 @@ export default function Quiz() {
         }));
 
         setQuestions(fetched);
-        setLoading(false);
+
+        // 💾 CACHE SAVE
+        localStorage.setItem(cacheKey, JSON.stringify(fetched));
+
       } catch (err) {
-        console.error(err);
+        console.error("Fetch error:", err);
+
+        // 🔁 RETRY ON ERROR
+        setTimeout(fetchQuestions, 3000);
+      } finally {
         setLoading(false);
       }
     };
 
-    if (isAuthenticated && category) fetchQuestions();
+    fetchQuestions();
   }, [isAuthenticated, category, mode]);
 
   /* ⏱ TIMER */
   useEffect(() => {
     clearInterval(timerRef.current);
+
+    if (!questions.length) return;
 
     timerRef.current = setInterval(() => {
       setTime((prev) => {
@@ -73,8 +103,9 @@ export default function Quiz() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [current]);
+  }, [current, questions.length]);
 
+  /* ➡ NEXT */
   const handleNext = useCallback(() => {
     setSelected(null);
     setShowAnswer(false);
@@ -82,6 +113,7 @@ export default function Quiz() {
     setCurrent((prev) => prev + 1);
   }, []);
 
+  /* 🎯 CLICK */
   const handleOptionClick = (opt) => {
     if (showAnswer) return;
 
@@ -91,9 +123,22 @@ export default function Quiz() {
     setTimeout(handleNext, 1200);
   };
 
-  if (loading) return <h2 className="center">Loading...</h2>;
-  if (!questions.length) return <h2>No questions 😕</h2>;
+  /* ⏳ LOADING UI */
+  if (authLoading || loading) {
+    return (
+      <div className="center">
+        <h2>🚀 Loading questions...</h2>
+        <p>First time may take 10–20s (Render server waking up)</p>
+      </div>
+    );
+  }
 
+  /* ❌ NO QUESTIONS */
+  if (!questions.length) {
+    return <h2 className="center">No questions 😕</h2>;
+  }
+
+  /* 🎉 END */
   if (current >= questions.length) {
     return (
       <div className="center">
@@ -116,7 +161,9 @@ export default function Quiz() {
         <div className="progress-bar">
           <div
             className="progress-fill"
-            style={{ width: `${((current + 1) / questions.length) * 100}%` }}
+            style={{
+              width: `${((current + 1) / questions.length) * 100}%`,
+            }}
           />
         </div>
       </div>
@@ -124,7 +171,7 @@ export default function Quiz() {
       {/* TIMER */}
       <div className="timer">{time}s</div>
 
-      {/* QUESTION CARD */}
+      {/* CARD */}
       <AnimatePresence mode="wait">
         <motion.div
           key={current}
@@ -147,8 +194,8 @@ export default function Quiz() {
 
               return (
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
                   key={i}
+                  whileTap={{ scale: 0.95 }}
                   className={className}
                   onClick={() => handleOptionClick(opt)}
                 >
