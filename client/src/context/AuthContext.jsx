@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ IMPORTANT
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
@@ -7,11 +7,9 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const navigate = useNavigate(); // ✅ use React routing
+  const navigate = useNavigate();
 
-  /* =========================
-     ✅ CHECK TOKEN ON LOAD
-  ========================= */
+  /* 🔐 CHECK TOKEN */
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -24,29 +22,27 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  /* =========================
-     ✅ LOGIN
-  ========================= */
-  const signIn = (token) => {
-    if (token) {
-      localStorage.setItem("token", token);
-      setIsAuthenticated(true);
+  /* ✅ LOGIN */
+  const signIn = (token, username) => {
+    if (!token) return;
 
-      // ✅ redirect after login
-      navigate("/dashboard");
+    localStorage.setItem("token", token);
+
+    if (username) {
+      localStorage.setItem("username", username); // 🔥 IMPORTANT
     }
+
+    setIsAuthenticated(true);
+
+    navigate("/dashboard");
   };
 
-  /* =========================
-     ✅ LOGOUT (FIXED PROPERLY)
-  ========================= */
+  /* 🚪 LOGOUT */
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("quiz-progress");
+    localStorage.clear();
 
     setIsAuthenticated(false);
 
-    // ✅ clean SPA redirect
     navigate("/login");
   };
 
@@ -59,9 +55,7 @@ export function AuthProvider({ children }) {
   );
 }
 
-/* =========================
-   ✅ CUSTOM HOOK
-========================= */
+/* ✅ HOOK */
 export function useAuth() {
   const context = useContext(AuthContext);
 
