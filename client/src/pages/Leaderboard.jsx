@@ -42,6 +42,10 @@ export default function Leaderboard() {
     if (rank === 2) return "🥉";
     return "";
   };
+  const chartData = data.map((item) => ({
+  username: item.userId?.username || "User",
+    score: item.score,
+  }));
 
   return (
     <div className="leaderboard-page">
