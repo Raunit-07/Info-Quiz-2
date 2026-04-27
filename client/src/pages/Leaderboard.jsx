@@ -69,7 +69,7 @@ export default function Leaderboard() {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await api.get("/quiz/leaderboard");
+      const res = await api.get("/api/quiz/leaderboard")
 
       const sorted = (res.data?.data || []).sort(
         (a, b) => b.score - a.score

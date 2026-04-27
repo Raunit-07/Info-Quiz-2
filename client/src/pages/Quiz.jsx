@@ -109,10 +109,10 @@ export default function Quiz() {
   const handleSubmit = async () => {
   try {
     await api.post("/quiz/submit", {
-      score,
-      category,     // ✅ ADD
-      difficulty: mode, // ✅ ADD
-    });
+  answers,
+  category,
+  difficulty: mode,
+});
 
     navigate("/leaderboard");
   } catch (err) {
