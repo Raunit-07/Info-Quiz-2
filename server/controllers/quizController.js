@@ -1,79 +1,91 @@
-import Question from '../models/Question.js';
+const questions = [
+  {
+    id: 1,
+    question: 'Which HTML tag is used to create a hyperlink?',
+    options: ['<a>', '<link>', '<href>', '<url>'],
+    answer: '<a>',
+  },
+  {
+    id: 2,
+    question: 'Which CSS property is used to change text color?',
+    options: ['font-color', 'color', 'text-color', 'foreground'],
+    answer: 'color',
+  },
+  {
+    id: 3,
+    question: 'Which JavaScript method converts JSON to an object?',
+    options: ['JSON.parse()', 'JSON.stringify()', 'JSON.convert()', 'JSON.toObject()'],
+    answer: 'JSON.parse()',
+  },
+  {
+    id: 4,
+    question: 'Which HTML element is used for the largest heading?',
+    options: ['<h6>', '<heading>', '<h1>', '<head>'],
+    answer: '<h1>',
+  },
+  {
+    id: 5,
+    question: 'Which CSS property controls the spacing between elements?',
+    options: ['padding', 'margin', 'spacing', 'border-spacing'],
+    answer: 'margin',
+  },
+];
 
-export const getQuestions = async (req, res) => {
+export const getQuestions = (req, res) => {
   try {
-    const { category, difficulty } = req.query;
-
-    console.log("Query:", category, difficulty);
-
-    const questions = await Question.find({
-      category: new RegExp(`^${category}$`, "i"),
-      difficulty: new RegExp(`^${difficulty}$`, "i"),
-    }).select("_id question options"); // ❗ don't send answer to frontend
-
-    if (!questions.length) {
-      return res.status(200).json({
-        success: false,
-        message: "No questions found",
-        data: [],
-      });
-    }
+    const safeQuestions = questions.map((q) => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+    }));
 
     res.status(200).json({
       success: true,
-      data: questions,
+      data: safeQuestions,
     });
-
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
 
-
 export const submitQuiz = async (req, res) => {
   try {
     const { answers } = req.body;
+    const userId = req.user.id;
 
     if (!Array.isArray(answers)) {
       return res.status(400).json({ error: 'Answers must be an array' });
     }
 
-    // answers format:
-    // [{ questionId, selectedOption }]
-
     let score = 0;
 
-    for (const ans of answers) {
-      const question = await Question.findById(ans.questionId);
-
-      if (question && ans.selectedOption === question.answer) {
+    answers.forEach((answer, index) => {
+      if (questions[index] && answer === questions[index].answer) {
         score++;
       }
-    }
-
-    const result = score >= Math.ceil(answers.length / 2) ? 'Pass' : 'Fail';
-
-    res.status(200).json({
-      success: true,
-      score,
-      total: answers.length,
-      result,
     });
 
+    const result = score >= 3 ? 'Pass' : 'Fail';
+
+    // Mock response - no database
+    res.status(201).json({
+      success: true,
+      score,
+      result,
+      message: `You scored ${score}/${questions.length}. Results not saved (no database).`,
+    });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
 
-
 export const getLeaderboard = async (req, res) => {
   try {
+    // Mock leaderboard - no database
     res.status(200).json({
       success: true,
       data: [],
-      message: 'Leaderboard not implemented yet',
+      message: 'Leaderboard not available (no database)',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

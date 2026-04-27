@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
@@ -12,17 +13,24 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: 'Please provide username and password' });
     }
 
-    // Mock registration - no database
-    const token = generateToken(Date.now().toString());
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    const newUser = new User({ username, password });
+    await newUser.save();
+
+    const token = generateToken(newUser._id);
 
     res.status(201).json({
       success: true,
       token,
       user: {
-        id: Date.now().toString(),
-        username: username,
+        id: newUser._id,
+        username: newUser.username,
       },
-      message: 'Registration successful (mock - no database)',
+      message: 'Registration successful',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -37,17 +45,21 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: 'Please provide username and password' });
     }
 
-    // Mock login - no database
-    const token = generateToken(Date.now().toString());
+    const user = await User.findOne({ username });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const token = generateToken(user._id);
 
     res.status(200).json({
       success: true,
       token,
       user: {
-        id: Date.now().toString(),
-        username: username,
+        id: user._id,
+        username: user.username,
       },
-      message: 'Login successful (mock - no database)',
+      message: 'Login successful',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
