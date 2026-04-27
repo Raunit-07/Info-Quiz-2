@@ -4,7 +4,7 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/questions', protect, getQuestions);
+router.get('/questions', getQuestions);
 router.post('/submit', protect, submitQuiz);
 router.get('/leaderboard', getLeaderboard);
 
