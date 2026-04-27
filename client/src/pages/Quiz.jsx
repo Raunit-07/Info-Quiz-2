@@ -23,6 +23,7 @@ export default function Quiz() {
   const [time, setTime] = useState(QUESTION_TIME);
   const [loading, setLoading] = useState(true);
   const [score, setScore] = useState(0);
+  const [answers, setAnswers] = useState([]);
 
   const timerRef = useRef(null);
 
@@ -121,13 +122,21 @@ export default function Quiz() {
 };   
 
   
-    const handleOptionClick = (opt) => {
+  const handleOptionClick = (opt) => {
   if (showAnswer) return;
 
   setSelected(opt);
   setShowAnswer(true);
 
-  // ✅ SCORE LOGIC
+  // ✅ STORE ANSWER
+  setAnswers((prev) => [
+    ...prev,
+    {
+      questionId: questions[current]._id,
+      selectedOption: opt,
+    },
+  ]);
+
   if (opt === questions[current].answer) {
     setScore((prev) => prev + 1);
   }
