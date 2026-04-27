@@ -50,31 +50,40 @@ export const getQuestions = (req, res) => {
 
 export const submitQuiz = async (req, res) => {
   try {
-    const { answers } = req.body;
-    const userId = req.user.id;
+    const { answers = [], category, difficulty } = req.body;
 
     if (!Array.isArray(answers)) {
-      return res.status(400).json({ error: 'Answers must be an array' });
+      return res.status(400).json({ error: "Answers must be array" });
     }
 
     let score = 0;
 
-    answers.forEach((answer, index) => {
-      if (questions[index] && answer === questions[index].answer) {
+    for (const ans of answers) {
+      const question = await Question.findById(ans.questionId);
+
+      if (question && ans.selectedOption === question.answer) {
         score++;
       }
-    });
+    }
 
-    const result = score >= 3 ? 'Pass' : 'Fail';
+    // ✅ SAVE (only if auth exists)
+    if (req.user?.id) {
+      await Score.create({
+        userId: req.user.id,
+        score,
+        category,
+        difficulty,
+      });
+    }
 
-    // Mock response - no database
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       score,
-      result,
-      message: `You scored ${score}/${questions.length}. Results not saved (no database).`,
+      total: answers.length,
     });
+
   } catch (err) {
+    console.error("❌ Submit Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
