@@ -13,6 +13,7 @@ import {
 export default function Leaderboard() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMode, setSelectedMode] = useState("medium");
 
   const currentUser = localStorage.getItem("username") || "";
 
@@ -24,7 +25,7 @@ export default function Leaderboard() {
         (a, b) => b.score - a.score
       );
 
-      setData(sorted);
+      setData(getUniqueUsers(sorted));
     } catch (err) {
       console.error("Leaderboard error:", err);
     } finally {
@@ -56,6 +57,20 @@ export default function Leaderboard() {
   return "";
 };
 
+
+const filterData = (category, difficulty) => {
+  return data
+    .filter(
+      (item) =>
+        item.category === category &&
+        item.difficulty === difficulty
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+};
+
+
+
 // ✅ CHART DATA (SAFE + NO CRASH)
 const chartData = (data || [])
   .slice(0, 10)
@@ -63,6 +78,26 @@ const chartData = (data || [])
     username: item?.userId?.username || "User",
     score: typeof item?.score === "number" ? item.score : 0,
   }));
+
+
+  // ✅ REMOVE DUPLICATES (KEEP HIGHEST SCORE)
+const getUniqueUsers = (arr) => {
+  const map = new Map();
+
+  arr.forEach((item) => {
+    const username = item.userId?.username;
+
+    if (!map.has(username) || map.get(username).score < item.score) {
+      map.set(username, item);
+    }
+  });
+
+  return Array.from(map.values());
+};
+
+
+
+
 
   return (
     <div className="leaderboard-page">
@@ -109,26 +144,53 @@ const chartData = (data || [])
         })}
       </div>
 
-      {/* 📊 FULL LIST */}
-      <div className="list">
-        {data.map((user, index) => {
-          const username = user.userId?.username || "User";
-          const isCurrent = username === currentUser;
 
-          return (
-            <motion.div
-              key={index}
-              className={`row ${isCurrent ? "active" : ""}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <span className="rank-num">#{index + 1}</span>
-              <span className="name">{username}</span>
-              <span className="score">{user.score} pts</span>
-            </motion.div>
-          );
-        })}
+
+<div className="mode-switch">
+  {["easy", "medium", "hard"].map((m) => (
+    <button
+      key={m}
+      onClick={() => setSelectedMode(m)}
+      className={selectedMode === m ? "active" : ""}
+    >
+      {m}
+    </button>
+  ))}
+</div>
+
+
+
+
+
+<div className="category-grid">
+
+  {["coding", "sports", "tech"].map((cat) => {
+    const filtered = filterData(cat, selectedMode);
+
+    return (
+      <div key={cat} className="category-card">
+        <h2>{cat.toUpperCase()}</h2>
+
+        {filtered.length === 0 ? (
+          <p>No data</p>
+        ) : (
+          filtered.map((user, i) => {
+            const username = user.userId?.username || "User";
+
+            return (
+              <div key={i} className="category-row">
+                <span>#{i + 1}</span>
+                <span>{username}</span>
+                <span>{user.score} pts</span>
+              </div>
+            );
+          })
+        )}
       </div>
+    );
+  })}
+</div>
+
     </div>
   );
-}
+}   
