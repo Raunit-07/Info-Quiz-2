@@ -22,6 +22,7 @@ export default function Quiz() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [time, setTime] = useState(QUESTION_TIME);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
 
@@ -107,19 +108,37 @@ export default function Quiz() {
   }, []);
 
 
-  const handleSubmit = async () => {
-  try {
-    await api.post("/quiz/submit", {
-  answers,
-  category,
-  difficulty: mode,
-});
+const handleSubmit = async () => {
+  if (submitting) return; // prevent spam
 
+  setSubmitting(true);
+
+  try {
+    const token = localStorage.getItem("token");
+
+    await api.post(
+      "/quiz/submit",
+      { answers },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // ✅ SUCCESS → redirect
     navigate("/leaderboard");
+
   } catch (err) {
     console.error("Submit error:", err);
+
+    // ⚠️ EVEN IF ERROR → still redirect (important UX)
+    navigate("/leaderboard");
+
+  } finally {
+    setSubmitting(false);
   }
-};   
+};
 
   
   const handleOptionClick = (opt) => {
@@ -167,8 +186,8 @@ export default function Quiz() {
 
       <h2>Your Score: {score} / {questions.length}</h2>
 
-      <button onClick={handleSubmit}>
-        🚀 Submit & View Leaderboard
+      <button onClick={handleSubmit} disabled={submitting}>
+        {submitting ? "Submitting..." : "Submit & View Leaderboard"}
       </button>
     </div>
   );
