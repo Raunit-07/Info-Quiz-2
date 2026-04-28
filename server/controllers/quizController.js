@@ -50,30 +50,24 @@ export const getQuestions = (req, res) => {
 
 export const submitQuiz = async (req, res) => {
   try {
-    const { answers = [], category, difficulty } = req.body;
+    const { answers } = req.body;
 
-    if (!Array.isArray(answers)) {
-      return res.status(400).json({ error: "Answers must be array" });
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({
+        error: "Answers must be a valid array",
+      });
     }
 
     let score = 0;
 
     for (const ans of answers) {
+      if (!ans.questionId) continue;
+
       const question = await Question.findById(ans.questionId);
 
       if (question && ans.selectedOption === question.answer) {
         score++;
       }
-    }
-
-    // ✅ SAVE (only if auth exists)
-    if (req.user?.id) {
-      await Score.create({
-        userId: req.user.id,
-        score,
-        category,
-        difficulty,
-      });
     }
 
     res.status(200).json({
@@ -83,7 +77,7 @@ export const submitQuiz = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ Submit Error:", err);
+    console.error("Submit error:", err);
     res.status(500).json({ error: err.message });
   }
 };
