@@ -201,57 +201,60 @@ app.get('/api/quiz/questions', verifyToken, (req, res) => {
   res.json({ success: true, data: safe });
 });
 
-app.post('/api/quiz/submit', verifyToken, (req, res) => {
-  const { answers } = req.body;
+app.post('/api/quiz/submit', verifyToken, async (req, res) => {
+  try {
+    const { answers } = req.body;
 
-  if (!Array.isArray(answers)) {
-    return res.status(400).json({ success: false, error: 'Invalid submission' });
-  }
+    let score = 0;
 
-  let score = 0;
-  answers.forEach((ans, i) => {
-    if (ans === QUESTIONS[i]?.answer) score++;
-  });
+    answers.forEach((ans, i) => {
+      if (ans === QUESTIONS[i]?.answer) score++;
+    });
 
-  const totalQuestions = QUESTIONS.length;
-  const percentage = Math.round((score / totalQuestions) * 100);
+    const existing = await Quiz.findOne({ user: req.user.id });
 
-  db.query('SELECT * FROM scores WHERE user_id=?', [req.user.id], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ success: false, error: 'Failed to submit' });
-    }
-
-    if (rows && rows.length > 0) {
-      if (score > rows[0].score) {
-        db.query('UPDATE scores SET score=? WHERE user_id=?', [score, req.user.id], () => {
-          res.json({ success: true, score, total: totalQuestions, percentage });
-        });
-      } else {
-        res.json({ success: true, score, total: totalQuestions, percentage });
+    if (existing) {
+      if (score > existing.score) {
+        existing.score = score;
+        await existing.save();
       }
     } else {
-      db.query('INSERT INTO scores (user_id, score) VALUES (?, ?)', [req.user.id, score], () => {
-        res.json({ success: true, score, total: totalQuestions, percentage });
+      await Quiz.create({
+        user: req.user.id,
+        score
       });
     }
-  });
+
+    res.json({ success: true, score });
+
+  } catch (err) {
+    console.error("Submit error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/quiz/leaderboard', (req, res) => {
-  db.query(
-    `SELECT users.username, scores.score
-     FROM users
-     JOIN scores ON users.id = scores.user_id
-     ORDER BY scores.score DESC
-     LIMIT 10`,
-    [],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ success: false, error: 'Failed to fetch leaderboard' });
-      }
-      res.json({ success: true, data: rows || [] });
-    }
-  );
+
+app.get('/api/quiz/leaderboard', async (req, res) => {
+  try {
+    const leaderboard = await Quiz.find()
+      .populate('user', 'username') // assuming ref
+      .sort({ score: -1 })
+      .limit(10);
+
+    const formatted = leaderboard.map(item => ({
+      username: item.user?.username || "Unknown",
+      score: item.score
+    }));
+
+    res.json({ success: true, data: formatted });
+
+  } catch (err) {
+    console.error("Leaderboard error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch leaderboard"
+    });
+  }
 });
 
 app.get('/api/health', (req, res) => {

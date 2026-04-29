@@ -84,27 +84,23 @@ export const submitQuiz = async (req, res) => {
 
 export const getLeaderboard = async (req, res) => {
   try {
-    const sql = `
-      SELECT users.username, scores.score
-      FROM scores
-      JOIN users ON users.id = scores.user_id
-      ORDER BY scores.score DESC
-      LIMIT 50
-    `;
+    const leaderboard = await Quiz.find()
+      .sort({ score: -1 })
+      .limit(10)
+      .lean();
 
-    db.query(sql, [], (err, rows) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: err.message });
-      }
+    // ✅ prevent crash if empty
+    if (!leaderboard || leaderboard.length === 0) {
+      return res.status(200).json([]);
+    }
 
-      res.status(200).json({
-        success: true,
-        data: rows,
-      });
+    res.status(200).json(leaderboard);
+
+  } catch (error) {
+    console.error("Leaderboard error:", error);
+    res.status(500).json({
+      message: "Failed to fetch leaderboard",
+      error: error.message
     });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 };
