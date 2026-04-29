@@ -4,10 +4,19 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import bcrypt from 'bcryptjs';
+import Quiz from "./models/Quiz.js";
 import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db from './db.js';
+import mongoose from 'mongoose';
+import { getLeaderboard } from './controllers/quizController.js';
+
+// Connect to MongoDB
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/quiz-app';
+mongoose.connect(mongoURI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('❌ MongoDB Error:', err.message));
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -221,6 +230,7 @@ app.post('/api/quiz/submit', verifyToken, async (req, res) => {
     } else {
       await Quiz.create({
         user: req.user.id,
+        username: req.user.username,
         score
       });
     }
@@ -234,39 +244,14 @@ app.post('/api/quiz/submit', verifyToken, async (req, res) => {
 });
 
 
-app.get('/api/quiz/leaderboard', async (req, res) => {
-  try {
-    const leaderboard = await Quiz.find()
-      .populate('user', 'username') // assuming ref
-      .sort({ score: -1 })
-      .limit(10);
-
-    const formatted = leaderboard.map(item => ({
-      username: item.user?.username || "Unknown",
-      score: item.score
-    }));
-
-    res.json({ success: true, data: formatted });
-
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch leaderboard"
-    });
-  }
-});
+// Leaderboard route — delegated to controller
+app.get('/api/quiz/leaderboard', getLeaderboard);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running', time: new Date().toISOString() });
 });
 
 // Serve React app for all non-API routes in production
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
-  });
-}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

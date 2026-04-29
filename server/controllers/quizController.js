@@ -1,3 +1,5 @@
+import Quiz from "../models/Quiz.js";
+
 const questions = [
   {
     id: 1,
@@ -89,18 +91,20 @@ export const getLeaderboard = async (req, res) => {
       .limit(10)
       .lean();
 
-    // ✅ prevent crash if empty
-    if (!leaderboard || leaderboard.length === 0) {
-      return res.status(200).json([]);
-    }
+    const formatted = (leaderboard || []).map((item) => ({
+      username: item.username || "Unknown",
+      score: item.score,
+    }));
 
-    res.status(200).json(leaderboard);
-
+    res.status(200).json({
+      success: true,
+      data: formatted,
+    });
   } catch (error) {
     console.error("Leaderboard error:", error);
     res.status(500).json({
-      message: "Failed to fetch leaderboard",
-      error: error.message
+      success: false,
+      error: "Failed to fetch leaderboard",
     });
   }
-};
+};
