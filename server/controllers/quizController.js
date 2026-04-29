@@ -84,12 +84,26 @@ export const submitQuiz = async (req, res) => {
 
 export const getLeaderboard = async (req, res) => {
   try {
-    // Mock leaderboard - no database
-    res.status(200).json({
-      success: true,
-      data: [],
-      message: 'Leaderboard not available (no database)',
+    const sql = `
+      SELECT users.username, scores.score
+      FROM scores
+      JOIN users ON users.id = scores.user_id
+      ORDER BY scores.score DESC
+      LIMIT 50
+    `;
+
+    db.query(sql, [], (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: rows,
+      });
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
