@@ -25,10 +25,12 @@ export default function Leaderboard() {
     const map = new Map();
 
     arr.forEach((item) => {
-      const username = item?.username;
-      if (!username) return;
+      const username =
+        item?.username ||
+        item?.userId?.username ||
+        "unknown";
 
-      if (!map.has(username) || map.get(username).score < item.score) {
+      if (!map.has(username) || item.score > map.get(username).score) {
         map.set(username, item);
       }
     });
@@ -37,15 +39,26 @@ export default function Leaderboard() {
   };
 
   // ✅ FILTER BY CATEGORY + MODE (EXCLUDING PODIUM USERS)
-  const filterCategoryData = (cat, difficulty, podiumUsers) => {
-    const podiumUsernames = new Set(podiumUsers.map((u) => u.username));
-
-    const filtered = data.filter(
-      (item) =>
-        item?.category?.toLowerCase() === cat.toLowerCase() &&
-        item?.difficulty?.toLowerCase() === difficulty.toLowerCase() &&
-        !podiumUsernames.has(item.username)
+  const filterCategoryData = (cat, difficulty, podiumUsers = []) => {
+    const podiumUsernames = new Set(
+      podiumUsers.map((u) => u?.username?.toLowerCase())
     );
+
+    const filtered = data.filter((item) => {
+      const username =
+        item?.username ||
+        item?.userId?.username ||
+        "unknown";
+
+      const itemCategory = item?.category?.toLowerCase();
+      const itemDifficulty = item?.difficulty?.toLowerCase();
+
+      return (
+        itemCategory === cat.toLowerCase() &&
+        itemDifficulty === difficulty.toLowerCase() &&
+        !podiumUsernames.has(username.toLowerCase())
+      );
+    });
 
     return getUniqueHighestScores(filtered).slice(0, 5);
   };
@@ -175,12 +188,12 @@ export default function Leaderboard() {
 
       {/* 📦 CATEGORY GRID */}
       <div className="category-grid">
-        {["coding", "sports", "tech"].map((cat) => {
+        {["Coding", "Sports", "Tech"].map((cat) => {
           const filtered = filterCategoryData(cat, selectedMode, top3);
 
           return (
             <div key={cat} className="category-card">
-              <h2>{cat.toUpperCase()}</h2>
+              <h2>{cat}</h2>
 
               {filtered.length === 0 ? (
                 <p>No data</p>
@@ -192,7 +205,7 @@ export default function Leaderboard() {
                     <div key={i} className="category-row">
                       <span className="rank">#{i + 1}</span>
                       <span className="user">{username}</span>
-                      <span className="score">{user.score} pts</span>
+                      <span className="score">{user?.score || 0} pts</span>
                     </div>
                   );
                 })
