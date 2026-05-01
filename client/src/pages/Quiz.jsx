@@ -118,11 +118,10 @@ const handleSubmit = async () => {
 
     await api.post(
       "/quiz/submit",
-      { answers },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      { 
+        score, 
+        category, 
+        difficulty: mode 
       }
     );
 

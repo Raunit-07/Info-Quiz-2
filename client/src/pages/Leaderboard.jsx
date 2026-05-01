@@ -20,13 +20,12 @@ export default function Leaderboard() {
 
   /* ================= HELPERS ================= */
 
-  // ✅ REMOVE DUPLICATES (KEEP HIGHEST SCORE PER USER)
-  const getUniqueUsers = (arr) => {
+  // ✅ HIGHEST SCORE PER USER (WITHIN A FILTERED SET)
+  const getUniqueHighestScores = (arr) => {
     const map = new Map();
 
     arr.forEach((item) => {
-      const username = item?.userId?.username;
-
+      const username = item?.username;
       if (!username) return;
 
       if (!map.has(username) || map.get(username).score < item.score) {
@@ -34,19 +33,21 @@ export default function Leaderboard() {
       }
     });
 
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => b.score - a.score);
   };
 
-  // ✅ FILTER BY CATEGORY + MODE
-  const filterData = (category, difficulty) => {
-    return data
-      .filter(
-        (item) =>
-          item?.category === category &&
-          item?.difficulty === difficulty
-      )
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+  // ✅ FILTER BY CATEGORY + MODE (EXCLUDING PODIUM USERS)
+  const filterCategoryData = (cat, difficulty, podiumUsers) => {
+    const podiumUsernames = new Set(podiumUsers.map((u) => u.username));
+
+    const filtered = data.filter(
+      (item) =>
+        item?.category?.toLowerCase() === cat.toLowerCase() &&
+        item?.difficulty?.toLowerCase() === difficulty.toLowerCase() &&
+        !podiumUsernames.has(item.username)
+    );
+
+    return getUniqueHighestScores(filtered).slice(0, 5);
   };
 
   // ✅ MEDAL FUNCTION
@@ -57,25 +58,20 @@ export default function Leaderboard() {
     return "";
   };
 
-  // ✅ CHART DATA
-  const chartData = (data || [])
-    .slice(0, 10)
-    .map((item) => ({
-      username: item?.userId?.username || "User",
+  // ✅ CHART DATA (TOP 10 FOR MODE)
+  const getChartData = (modeData) => {
+    return modeData.slice(0, 10).map((item) => ({
+      username: item?.username || "User",
       score: typeof item?.score === "number" ? item.score : 0,
     }));
+  };
 
   /* ================= FETCH ================= */
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await api.get("/api/quiz/leaderboard")
-
-      const sorted = (res.data?.data || []).sort(
-        (a, b) => b.score - a.score
-      );
-
-      setData(getUniqueUsers(sorted));
+      const res = await api.get("/quiz/leaderboard");
+      setData(res.data?.data || []);
     } catch (err) {
       console.error("Leaderboard error:", err);
     } finally {
@@ -101,7 +97,16 @@ export default function Leaderboard() {
     );
   }
 
-  const top3 = data.slice(0, 3);
+  // ✅ 1. FILTER BY MODE FIRST
+  const modeData = getUniqueHighestScores(
+    data.filter((item) => item.difficulty === selectedMode)
+  );
+
+  // ✅ 2. GET TOP 3 FOR PODIUM
+  const top3 = modeData.slice(0, 3);
+
+  // ✅ 3. CHART DATA
+  const chartData = getChartData(modeData);
 
   /* ================= UI ================= */
 
@@ -131,12 +136,12 @@ export default function Leaderboard() {
       {/* 🏆 TOP 3 */}
       <div className="podium">
         {top3.map((user, i) => {
-          const username = user?.userId?.username || "User";
+          const username = user?.username || "User";
 
           return (
             <motion.div
               key={i}
-              className="podium-card"
+              className={`podium-card ${i === 0 ? "first" : ""}`}
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.2 }}
@@ -149,6 +154,7 @@ export default function Leaderboard() {
 
               <h3>{username}</h3>
               <p>{user.score} pts</p>
+              <span className="cat-tag">{user.category}</span>
             </motion.div>
           );
         })}
@@ -170,7 +176,7 @@ export default function Leaderboard() {
       {/* 📦 CATEGORY GRID */}
       <div className="category-grid">
         {["coding", "sports", "tech"].map((cat) => {
-          const filtered = filterData(cat, selectedMode);
+          const filtered = filterCategoryData(cat, selectedMode, top3);
 
           return (
             <div key={cat} className="category-card">
@@ -180,14 +186,13 @@ export default function Leaderboard() {
                 <p>No data</p>
               ) : (
                 filtered.map((user, i) => {
-                  const username =
-                    user?.userId?.username || "User";
+                  const username = user?.username || "User";
 
                   return (
                     <div key={i} className="category-row">
-                      <span>#{i + 1}</span>
-                      <span>{username}</span>
-                      <span>{user.score} pts</span>
+                      <span className="rank">#{i + 1}</span>
+                      <span className="user">{username}</span>
+                      <span className="score">{user.score} pts</span>
                     </div>
                   );
                 })

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://quiz-backend-yg1i.onrender.com/api", // ✅ FIXED
+  baseURL: "http://localhost:10000/api", // ✅ LOCAL TESTING
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",

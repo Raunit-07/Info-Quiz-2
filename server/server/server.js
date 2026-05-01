@@ -152,14 +152,19 @@ const questionsData = {
    ✅ GET QUESTIONS API (FIXED)
 ========================= */
 app.get("/api/quiz/questions", (req, res) => {
-  const { category, difficulty } = req.query;
+  let { category, difficulty } = req.query;
 
-  // 🔥 ADD HERE
-  console.log("CATEGORY:", category);
-  console.log("DIFFICULTY:", difficulty);
-  console.log("AVAILABLE:", Object.keys(questionsData));
+  if (!category) {
+    return res.status(400).json({ error: "Category required" });
+  }
 
-  if (!category || !questionsData[category]) {
+  // ✅ FIX CASE MISMATCH
+  category =
+    category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+
+  console.log("Normalized category:", category);
+
+  if (!questionsData[category]) {
     return res.status(400).json({ error: "Invalid category" });
   }
 
@@ -177,61 +182,109 @@ app.get("/api/quiz/questions", (req, res) => {
 /* =========================
    ✅ AUTH ROUTES
 ========================= */
+
+// 🔐 REGISTER
 app.post("/api/auth/register", async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    if (!username || !password) {
+      return res.status(400).json({ error: "All fields required" });
+    }
+
     const exists = await User.findOne({ username });
-    if (exists) return res.status(400).json({ error: "User exists" });
+    if (exists) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, password: hashed });
+
+    const user = await User.create({
+      username,
+      password: hashed,
+    });
+
+    // ✅ SAFE SECRET
+    const SECRET = process.env.JWT_SECRET || "fallback_secret";
 
     const token = jwt.sign(
       { id: user._id, username: user.username },
-      process.env.JWT_SECRET,
+      SECRET,
       { expiresIn: "7d" }
     );
 
-    res.status(201).json({ token });
-  } catch {
-    res.status(500).json({ error: "Registration failed" });
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+      },
+    });
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
+
+// 🔐 LOGIN
 app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    if (!username || !password) {
+      return res.status(400).json({ error: "All fields required" });
+    }
+
     const user = await User.findOne({ username });
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: "Invalid credentials" });
+    if (!match) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // ✅ SAFE SECRET
+    const SECRET = process.env.JWT_SECRET || "fallback_secret";
 
     const token = jwt.sign(
       { id: user._id, username: user.username },
-      process.env.JWT_SECRET,
+      SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ token });
-  } catch {
-    res.status(500).json({ error: "Login failed" });
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+      },
+    });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
-
 /* =========================
    ✅ TOKEN MIDDLEWARE
 ========================= */
 function verifyToken(req, res, next) {
   const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ error: "No token" });
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "No token" });
+  }
 
   const token = header.split(" ")[1];
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const SECRET = process.env.JWT_SECRET || "fallback_secret";
+    req.user = jwt.verify(token, SECRET);
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });
@@ -250,11 +303,11 @@ app.post("/api/quiz/submit", verifyToken, async (req, res) => {
 
   try {
     await Score.create({
-  userId: req.user.id,
-  score,
-  category,
-  difficulty,
-});
+      userId: req.user.id,
+      score,
+      category,
+      difficulty,
+    });
 
     res.json({ success: true });
   } catch (err) {
@@ -270,13 +323,22 @@ app.post("/api/quiz/submit", verifyToken, async (req, res) => {
 // 🏆 1. OVERALL
 app.get("/api/quiz/leaderboard", async (req, res) => {
   try {
-    const data = await Score.find()
+    const scores = await Score.find()
       .sort({ score: -1 })
-      .populate("userId", "username");
+      .populate("userId", "username")
+      .lean();
+
+    const data = scores.map((s) => ({
+      username: s.userId?.username || "Unknown",
+      score: s.score || 0,
+      category: s.category || "General",
+      difficulty: s.difficulty || "medium",
+    }));
 
     res.json({ data });
-  } catch {
-    res.status(500).json({ error: "Failed" });
+  } catch (err) {
+    console.error("Leaderboard fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
 

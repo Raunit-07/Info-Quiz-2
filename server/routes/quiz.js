@@ -8,7 +8,7 @@ import {
 
 const router = express.Router(); // ✅ MUST BE FIRST
 
-router.get("/questions", protect, getQuestions);
+router.get("/questions", getQuestions);
 router.post("/submit", protect, submitQuiz);
 router.get("/leaderboard", getLeaderboard); // ✅ IMPORTANT
 
