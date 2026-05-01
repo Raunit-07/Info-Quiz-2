@@ -180,23 +180,29 @@ app.get("/api/quiz/questions", (req, res) => {
 });
 
 /* =========================
-   ✅ AUTH ROUTES
+   ✅ AUTH ROUTES (FIXED)
 ========================= */
 
 // 🔐 REGISTER
 app.post("/api/auth/register", async (req, res) => {
-  const { username, password } = req.body;
-
   try {
+    let { username, password } = req.body;
+
+    // 🛡️ sanitize input
+    username = username?.trim();
+    password = password?.trim();
+
     if (!username || !password) {
       return res.status(400).json({ error: "All fields required" });
     }
 
+    // 🔍 check existing user
     const exists = await User.findOne({ username });
     if (exists) {
       return res.status(400).json({ error: "User already exists" });
     }
 
+    // 🔒 hash password
     const hashed = await bcrypt.hash(password, 10);
 
     const user = await User.create({
@@ -204,7 +210,7 @@ app.post("/api/auth/register", async (req, res) => {
       password: hashed,
     });
 
-    // ✅ SAFE SECRET
+    // 🔑 safe secret
     const SECRET = process.env.JWT_SECRET || "fallback_secret";
 
     const token = jwt.sign(
@@ -213,7 +219,7 @@ app.post("/api/auth/register", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       token,
       user: {
@@ -223,24 +229,37 @@ app.post("/api/auth/register", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ REGISTER ERROR:", err);
+    return res.status(500).json({
+      error: "Registration failed",
+      debug: err.message, // remove in production later
+    });
   }
 });
 
 
 // 🔐 LOGIN
 app.post("/api/auth/login", async (req, res) => {
-  const { username, password } = req.body;
-
   try {
+    let { username, password } = req.body;
+
+    // 🛡️ sanitize input
+    username = username?.trim();
+    password = password?.trim();
+
     if (!username || !password) {
       return res.status(400).json({ error: "All fields required" });
     }
 
+    // 🔍 find user
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // 🔑 check password safely
+    if (!user.password) {
+      return res.status(500).json({ error: "User password missing in DB" });
     }
 
     const match = await bcrypt.compare(password, user.password);
@@ -248,7 +267,7 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // ✅ SAFE SECRET
+    // 🔑 safe secret
     const SECRET = process.env.JWT_SECRET || "fallback_secret";
 
     const token = jwt.sign(
@@ -257,7 +276,7 @@ app.post("/api/auth/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.json({
+    return res.json({
       success: true,
       token,
       user: {
@@ -267,10 +286,15 @@ app.post("/api/auth/login", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ LOGIN ERROR:", err);
+    return res.status(500).json({
+      error: "Login failed",
+      debug: err.message,
+    });
   }
 });
+
+
 /* =========================
    ✅ TOKEN MIDDLEWARE
 ========================= */
