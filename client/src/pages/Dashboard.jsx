@@ -12,10 +12,11 @@ export default function Dashboard() {
 
   /* 🔥 WAKE BACKEND */
   useEffect(() => {
-    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
+    api.get("/health")
       .then(() => console.log("Backend awake"))
       .catch(() => console.log("Waking backend..."));
   }, []);
+
 
   /* 🧹 CLEAR OLD DATA */
   useEffect(() => {

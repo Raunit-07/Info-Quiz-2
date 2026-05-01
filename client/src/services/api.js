@@ -1,16 +1,18 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://quiz-backend-yg1i.onrender.com/api", // ✅ LOCAL TESTING
+  // Use relative path in production (since Express serves the build)
+  // or localhost in development
+  baseURL: process.env.NODE_ENV === "production" 
+    ? "/api" 
+    : "http://localhost:5000/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-export default api;
-
-// 🔐 Attach token
+// 🔐 Attach token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -19,17 +21,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ⚠️ Handle errors
+// ⚠️ Handle global response errors
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    console.error("API Error:", error.response || error.message);
-
+    // If unauthorized (expired token), clear local storage and redirect
     if (error.response?.status === 401) {
       localStorage.clear();
-      window.location.replace("/login");
+      if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
+        window.location.replace("/login");
+      }
     }
-
+    
+    // Ensure we always return a clean error message from JSON if possible
+    const message = error.response?.data?.error || error.response?.data || error.message;
+    console.error("API Error:", message);
+    
     return Promise.reject(error);
   }
 );
+
+export default api;

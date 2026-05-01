@@ -30,9 +30,7 @@ export default function Login() {
   useEffect(() => {
     const wakeBackend = async () => {
       try {
-        await fetch(
-          "https://quiz-backend-yg1i.onrender.com/api/health"
-        );
+        await api.get("/health");
         console.log("Backend awake");
       } catch {
         console.log("Waking backend...");
@@ -41,6 +39,7 @@ export default function Login() {
 
     wakeBackend();
   }, []);
+
 
   /* =========================
      ✅ LOGIN HANDLER
@@ -76,12 +75,11 @@ export default function Login() {
 
       const msg =
         err.response?.data?.error ||
-        err.response?.data ||
-        err.message ||
-        "Login failed. Please try again.";
+        "Login failed. Please check your credentials.";
 
       setError(typeof msg === "string" ? msg : "Login failed");
     } finally {
+
       setLoading(false);
     }
   };

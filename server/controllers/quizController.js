@@ -1,110 +1,103 @@
-import Quiz from "../models/Quiz.js";
+import Score from "../models/Score.js";
+import questionsData from "../data/questions.js";
 
-const questions = [
-  {
-    id: 1,
-    question: 'Which HTML tag is used to create a hyperlink?',
-    options: ['<a>', '<link>', '<href>', '<url>'],
-    answer: '<a>',
-  },
-  {
-    id: 2,
-    question: 'Which CSS property is used to change text color?',
-    options: ['font-color', 'color', 'text-color', 'foreground'],
-    answer: 'color',
-  },
-  {
-    id: 3,
-    question: 'Which JavaScript method converts JSON to an object?',
-    options: ['JSON.parse()', 'JSON.stringify()', 'JSON.convert()', 'JSON.toObject()'],
-    answer: 'JSON.parse()',
-  },
-  {
-    id: 4,
-    question: 'Which HTML element is used for the largest heading?',
-    options: ['<h6>', '<heading>', '<h1>', '<head>'],
-    answer: '<h1>',
-  },
-  {
-    id: 5,
-    question: 'Which CSS property controls the spacing between elements?',
-    options: ['padding', 'margin', 'spacing', 'border-spacing'],
-    answer: 'margin',
-  },
-];
-
-export const getQuestions = (req, res) => {
+// @desc    Get questions by category and difficulty
+// @route   GET /api/quiz/questions
+// @access  Public (or Protected if preferred)
+export const getQuestions = (req, res, next) => {
   try {
-    const safeQuestions = questions.map((q) => ({
-      id: q.id,
-      question: q.question,
-      options: q.options,
-    }));
+    let { category, difficulty } = req.query;
+
+    if (!category) {
+      return res.status(400).json({ error: "Category is required" });
+    }
+
+    // Normalize category
+    category = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+
+    if (!questionsData[category]) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+
+    let questions = questionsData[category];
+
+    if (difficulty) {
+      questions = questions.filter(
+        (q) => q.difficulty.toLowerCase() === difficulty.toLowerCase()
+      );
+    }
 
     res.status(200).json({
       success: true,
-      data: safeQuestions,
+      data: questions,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-export const submitQuiz = async (req, res) => {
+// @desc    Submit quiz score
+// @route   POST /api/quiz/submit
+// @access  Private
+export const submitQuiz = async (req, res, next) => {
   try {
-    const { answers } = req.body;
+    const { score, category, difficulty } = req.body;
 
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: "Answers must be a valid array",
-      });
+    if (typeof score !== "number") {
+      return res.status(400).json({ error: "Valid score is required" });
     }
 
-    let score = 0;
-
-    for (const ans of answers) {
-      if (!ans.questionId) continue;
-
-      const question = await Question.findById(ans.questionId);
-
-      if (question && ans.selectedOption === question.answer) {
-        score++;
-      }
+    if (!category || !difficulty) {
+      return res.status(400).json({ error: "Category and difficulty are required" });
     }
 
-    res.status(200).json({
-      success: true,
+    // Create score entry in MongoDB
+    const newScore = await Score.create({
+      userId: req.user.id,
       score,
-      total: answers.length,
+      category,
+      difficulty,
     });
 
+    res.status(201).json({
+      success: true,
+      data: newScore,
+    });
   } catch (err) {
-    console.error("Submit error:", err);
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };
 
-export const getLeaderboard = async (req, res) => {
+// @desc    Get leaderboard
+// @route   GET /api/quiz/leaderboard
+// @access  Public
+export const getLeaderboard = async (req, res, next) => {
   try {
-    const leaderboard = await Quiz.find()
-      .sort({ score: -1 })
-      .limit(10)
+    const { category, difficulty } = req.query;
+    const query = {};
+
+    if (category) query.category = category;
+    if (difficulty) query.difficulty = difficulty;
+
+    const scores = await Score.find(query)
+      .populate("userId", "username")
+      .sort({ score: -1, createdAt: -1 })
+      .limit(50)
       .lean();
 
-    const formatted = (leaderboard || []).map((item) => ({
-      username: item.username || "Unknown",
-      score: item.score,
+    const formatted = scores.map((s) => ({
+      username: s.userId?.username || "Unknown User",
+      score: s.score,
+      category: s.category,
+      difficulty: s.difficulty,
+      date: s.createdAt,
     }));
 
     res.status(200).json({
       success: true,
       data: formatted,
     });
-  } catch (error) {
-    console.error("Leaderboard error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch leaderboard",
-    });
+  } catch (err) {
+    next(err);
   }
-};
+};
