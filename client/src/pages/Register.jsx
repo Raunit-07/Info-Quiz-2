@@ -1,154 +1,150 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";
-import { useAuth } from "../context/AuthContext";
-import "../App.css";
-import logo from "../assets/logo.png";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import '../App.css';
 
-export default function Login() {
+export default function Register() {
   const navigate = useNavigate();
-  const { isAuthenticated, signIn, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [strength, setStrength] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
-  /* =========================
-     ✅ REDIRECT IF LOGGED IN
-  ========================= */
+  /* 🔥 Wake backend */
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, authLoading, navigate]);
-
-  /* =========================
-     🔥 WAKE BACKEND (Render fix)
-  ========================= */
-  useEffect(() => {
-    const wakeBackend = async () => {
-      try {
-        await fetch(
-          "https://quiz-backend-yg1i.onrender.com/api/health"
-        );
-        console.log("Backend awake");
-      } catch {
-        console.log("Waking backend...");
-      }
-    };
-
-    wakeBackend();
+    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
+      .then(() => console.log("Backend awake"))
+      .catch(() => console.log("Waking backend..."));
   }, []);
 
-  /* =========================
-     ✅ LOGIN HANDLER
-  ========================= */
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      setError("All fields are required");
-      return;
+  /* 🔐 Redirect if already logged in */
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const checkStrength = (pass) => {
+    if (pass.length < 6) return 'Weak';
+    if (pass.match(/[A-Z]/) && pass.match(/[0-9]/)) return 'Strong';
+    return 'Medium';
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+
+    if (!username || !password || !confirm) {
+      return setError("All fields are required");
+    }
+
+    if (password !== confirm) {
+      return setError("Passwords do not match");
     }
 
     try {
       setLoading(true);
-      setError("");
+      setError('');
 
-      // ✅ CORRECT API PATH (NO DOUBLE /api)
-      const res = await api.post("/auth/login", {
+      console.log("Sending request...");
+
+      const res = await api.post("/auth/register", {
         username,
         password,
       });
 
-      if (!res.data?.token) {
-        throw new Error("Token not received");
-      }
+      console.log("Response:", res.data);
 
-      // ✅ SAVE TOKEN
-      signIn(res.data.token, username);
-
-      // ✅ REDIRECT
-      navigate("/dashboard");
+      // ✅ SUCCESS REDIRECT WITH MESSAGE
+      navigate('/login', {
+        state: { message: "Registration successful 🎉 Please login." }
+      });
 
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Register error:", err.response || err);
 
-      const msg =
+      const errorMessage =
         err.response?.data?.error ||
         err.response?.data ||
-        err.message ||
-        "Login failed. Please try again.";
+        'Registration failed. Try again.';
 
-      setError(typeof msg === "string" ? msg : "Login failed");
+      setError(typeof errorMessage === 'string'
+        ? errorMessage
+        : 'Registration failed. Try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================
-     ⌨️ ENTER KEY SUPPORT
-  ========================= */
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
-  };
-
-  /* =========================
-     UI
-  ========================= */
   return (
     <div className="login-page">
       {authLoading ? (
         <div className="login-card">
           <h2>Checking authentication...</h2>
-          <p>Please wait...</p>
         </div>
       ) : (
         <div className="login-card">
-          <img src={logo} alt="logo" className="logo" />
 
-          <h2>Welcome to Info Quiz</h2>
+          <h3 className="back" onClick={() => navigate('/login')}>
+            ← Registration
+          </h3>
+
+          <h2>Create a new account</h2>
 
           <input
             type="text"
             placeholder="Enter Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={handleKeyDown}
           />
 
-          <div className="input-group">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <span
-              className="toggle-password"
-              onClick={() => setShowPassword((prev) => !prev)}
-            >
-              {showPassword ? "🙈" : "👁️"}
-            </span>
-          </div>
+          <input
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setStrength(checkStrength(e.target.value));
+            }}
+          />
 
-          <button
-            className="login-btn"
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+          {password && (
+            <p className={`strength ${strength.toLowerCase()}`}>
+              {strength}
+            </p>
+          )}
+
+          <input
+            type="password"
+            placeholder="Repeat Password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+
+          {confirm && password !== confirm && (
+            <p className="error">Passwords do not match</p>
+          )}
 
           {error && <p className="error">{error}</p>}
 
+          <button
+            className="login-btn"
+            onClick={handleRegister}
+            disabled={loading}
+          >
+            {loading ? 'Registering...' : 'Register'}
+          </button>
+
           <p className="toggle">
-            New user?
-            <span onClick={() => navigate("/register")}> Register</span>
+            Already have an account?
+            <span onClick={() => navigate('/login')}> Login</span>
           </p>
+
         </div>
       )}
     </div>

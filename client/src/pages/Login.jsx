@@ -15,52 +15,70 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* 🔐 Redirect if logged in */
+  /* =========================
+     ✅ REDIRECT IF LOGGED IN
+  ========================= */
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       navigate("/dashboard");
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  /* 🔥 Wake backend */
+  /* =========================
+     🔥 WAKE BACKEND (Render fix)
+  ========================= */
   useEffect(() => {
-    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
-      .catch(() => {});
+    const wakeBackend = async () => {
+      try {
+        await fetch(
+          "https://quiz-backend-yg1i.onrender.com/api/health"
+        );
+        console.log("Backend awake");
+      } catch {
+        console.log("Waking backend...");
+      }
+    };
+
+    wakeBackend();
   }, []);
 
-  /* ✅ LOGIN */
+  /* =========================
+     ✅ LOGIN HANDLER
+  ========================= */
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      return setError("All fields are required");
+      setError("All fields are required");
+      return;
     }
 
     try {
       setLoading(true);
       setError("");
 
+      // ✅ CORRECT API PATH (NO DOUBLE /api)
       const res = await api.post("/auth/login", {
         username,
         password,
       });
 
       if (!res.data?.token) {
-        throw new Error("Invalid server response");
+        throw new Error("Token not received");
       }
 
-      // ✅ Save token + username
+      // ✅ SAVE TOKEN
       signIn(res.data.token, username);
 
+      // ✅ REDIRECT
       navigate("/dashboard");
 
     } catch (err) {
       console.error("Login error:", err);
 
-      // ✅ FIXED ERROR HANDLING
       const msg =
         err.response?.data?.error ||
-        err.response?.data?.message ||
+        err.response?.data ||
         err.message ||
-        "Login failed";
+        "Login failed. Please try again.";
 
       setError(typeof msg === "string" ? msg : "Login failed");
     } finally {
@@ -68,12 +86,18 @@ export default function Login() {
     }
   };
 
+  /* =========================
+     ⌨️ ENTER KEY SUPPORT
+  ========================= */
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       handleLogin();
     }
   };
 
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="login-page">
       {authLoading ? (
