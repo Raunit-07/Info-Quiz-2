@@ -1,150 +1,154 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import '../App.css';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import "../App.css";
+import logo from "../assets/logo.png";
 
-export default function Register() {
+export default function Login() {
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, signIn, loading: authLoading } = useAuth();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [strength, setStrength] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  /* 🔥 Wake backend */
+  /* =========================
+     ✅ REDIRECT IF LOGGED IN
+  ========================= */
   useEffect(() => {
-    fetch("https://quiz-backend-yg1i.onrender.com/api/health")
-      .then(() => console.log("Backend awake"))
-      .catch(() => console.log("Waking backend..."));
+    if (!authLoading && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
+  /* =========================
+     🔥 WAKE BACKEND (Render fix)
+  ========================= */
+  useEffect(() => {
+    const wakeBackend = async () => {
+      try {
+        await fetch(
+          "https://quiz-backend-yg1i.onrender.com/api/health"
+        );
+        console.log("Backend awake");
+      } catch {
+        console.log("Waking backend...");
+      }
+    };
+
+    wakeBackend();
   }, []);
 
-  /* 🔐 Redirect if already logged in */
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
-
-  const checkStrength = (pass) => {
-    if (pass.length < 6) return 'Weak';
-    if (pass.match(/[A-Z]/) && pass.match(/[0-9]/)) return 'Strong';
-    return 'Medium';
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-
-    if (!username || !password || !confirm) {
-      return setError("All fields are required");
-    }
-
-    if (password !== confirm) {
-      return setError("Passwords do not match");
+  /* =========================
+     ✅ LOGIN HANDLER
+  ========================= */
+  const handleLogin = async () => {
+    if (!username.trim() || !password.trim()) {
+      setError("All fields are required");
+      return;
     }
 
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
-      console.log("Sending request...");
-
-      const res = await api.post("/auth/register", {
+      // ✅ CORRECT API PATH (NO DOUBLE /api)
+      const res = await api.post("/auth/login", {
         username,
         password,
       });
 
-      console.log("Response:", res.data);
+      if (!res.data?.token) {
+        throw new Error("Token not received");
+      }
 
-      // ✅ SUCCESS REDIRECT WITH MESSAGE
-      navigate('/login', {
-        state: { message: "Registration successful 🎉 Please login." }
-      });
+      // ✅ SAVE TOKEN
+      signIn(res.data.token, username);
+
+      // ✅ REDIRECT
+      navigate("/dashboard");
 
     } catch (err) {
-      console.error("Register error:", err.response || err);
+      console.error("Login error:", err);
 
-      const errorMessage =
+      const msg =
         err.response?.data?.error ||
         err.response?.data ||
-        'Registration failed. Try again.';
+        err.message ||
+        "Login failed. Please try again.";
 
-      setError(typeof errorMessage === 'string'
-        ? errorMessage
-        : 'Registration failed. Try again.'
-      );
+      setError(typeof msg === "string" ? msg : "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
+  /* =========================
+     ⌨️ ENTER KEY SUPPORT
+  ========================= */
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
+
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="login-page">
       {authLoading ? (
         <div className="login-card">
           <h2>Checking authentication...</h2>
+          <p>Please wait...</p>
         </div>
       ) : (
         <div className="login-card">
+          <img src={logo} alt="logo" className="logo" />
 
-          <h3 className="back" onClick={() => navigate('/login')}>
-            ← Registration
-          </h3>
-
-          <h2>Create a new account</h2>
+          <h2>Welcome to Info Quiz</h2>
 
           <input
             type="text"
             placeholder="Enter Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
 
-          <input
-            type="password"
-            placeholder="Enter Password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setStrength(checkStrength(e.target.value));
-            }}
-          />
-
-          {password && (
-            <p className={`strength ${strength.toLowerCase()}`}>
-              {strength}
-            </p>
-          )}
-
-          <input
-            type="password"
-            placeholder="Repeat Password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
-
-          {confirm && password !== confirm && (
-            <p className="error">Passwords do not match</p>
-          )}
-
-          {error && <p className="error">{error}</p>}
+          <div className="input-group">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <span
+              className="toggle-password"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </span>
+          </div>
 
           <button
             className="login-btn"
-            onClick={handleRegister}
+            onClick={handleLogin}
             disabled={loading}
           >
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? "Logging in..." : "Login"}
           </button>
 
-          <p className="toggle">
-            Already have an account?
-            <span onClick={() => navigate('/login')}> Login</span>
-          </p>
+          {error && <p className="error">{error}</p>}
 
+          <p className="toggle">
+            New user?
+            <span onClick={() => navigate("/register")}> Register</span>
+          </p>
         </div>
       )}
     </div>
