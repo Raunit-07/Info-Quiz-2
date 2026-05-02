@@ -6,10 +6,10 @@ import {
   getLeaderboard,
 } from "../controllers/quizController.js";
 
-const router = express.Router();
+const router = express.Router(); // ✅ MUST BE FIRST
 
 router.get("/questions", getQuestions);
 router.post("/submit", protect, submitQuiz);
-router.get("/leaderboard", getLeaderboard);
+router.get("/leaderboard", getLeaderboard); // ✅ IMPORTANT
 
 export default router;

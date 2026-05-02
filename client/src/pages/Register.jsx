@@ -17,11 +17,10 @@ export default function Register() {
 
   /* 🔥 Wake backend */
   useEffect(() => {
-    api.get("/health")
+    fetch("/api/health")
       .then(() => console.log("Backend awake"))
       .catch(() => console.log("Waking backend..."));
   }, []);
-
 
   /* 🔐 Redirect if already logged in */
   useEffect(() => {
@@ -70,6 +69,7 @@ export default function Register() {
 
       const errorMessage =
         err.response?.data?.error ||
+        err.response?.data ||
         'Registration failed. Try again.';
 
       setError(typeof errorMessage === 'string'
@@ -77,7 +77,6 @@ export default function Register() {
         : 'Registration failed. Try again.'
       );
     } finally {
-
       setLoading(false);
     }
   };

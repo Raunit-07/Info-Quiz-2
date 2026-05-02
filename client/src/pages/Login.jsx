@@ -30,7 +30,7 @@ export default function Login() {
   useEffect(() => {
     const wakeBackend = async () => {
       try {
-        await api.get("/health");
+        await fetch("/api/health");
         console.log("Backend awake");
       } catch {
         console.log("Waking backend...");
@@ -39,7 +39,6 @@ export default function Login() {
 
     wakeBackend();
   }, []);
-
 
   /* =========================
      ✅ LOGIN HANDLER
@@ -75,11 +74,12 @@ export default function Login() {
 
       const msg =
         err.response?.data?.error ||
-        "Login failed. Please check your credentials.";
+        err.response?.data ||
+        err.message ||
+        "Login failed. Please try again.";
 
       setError(typeof msg === "string" ? msg : "Login failed");
     } finally {
-
       setLoading(false);
     }
   };

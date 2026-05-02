@@ -1,16 +1,15 @@
 import axios from "axios";
 
 const api = axios.create({
-  // Use relative path in production (since Express serves the build)
-  // or localhost in development
-  baseURL: process.env.NODE_ENV === "production" 
-    ? "/api" 
-    : "http://localhost:5000/api",
+  // Use environment variable if available, otherwise fallback to local/relative path
+  baseURL: process.env.REACT_APP_API_URL || "/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+export default api;
 
 // 🔐 Attach token to every request
 api.interceptors.request.use((config) => {
@@ -21,24 +20,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ⚠️ Handle global response errors
+// ⚠️ Global error handling for responses
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    // If unauthorized (expired token), clear local storage and redirect
+    console.error("API Error:", error.response?.data || error.message);
+
+    // Auto logout on 401 Unauthorized
     if (error.response?.status === 401) {
-      localStorage.clear();
-      if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      if (window.location.pathname !== "/login") {
         window.location.replace("/login");
       }
     }
-    
-    // Ensure we always return a clean error message from JSON if possible
-    const message = error.response?.data?.error || error.response?.data || error.message;
-    console.error("API Error:", message);
-    
+
     return Promise.reject(error);
   }
 );
-
-export default api;
