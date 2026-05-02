@@ -39,9 +39,9 @@ app.get("/api/health", (req, res) => {
 // ✅ 2. API 404 HANDLER (Catch-all for /api/*)
 // ==========================================
 app.all("/api/*", (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    error: `Route not found: ${req.originalUrl}` 
+  res.status(404).json({
+    success: false,
+    error: `Route not found: ${req.originalUrl}`
   });
 });
 
@@ -49,16 +49,12 @@ app.all("/api/*", (req, res) => {
 // ✅ 3. STATIC FILES & SPA FALLBACK (Production Only)
 // ==========================================
 if (process.env.NODE_ENV === "production") {
-  // Serve static files from the React app
-  app.use(express.static(path.join(__dirname, "../client/build")));
+  const buildPath = path.join(process.cwd(), "client", "build");
 
-  // Catch-all for non-API GET requests to serve the React app
+  app.use(express.static(buildPath));
+
   app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "..", "client", "build", "index.html"));
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.send("API is running...");
+    res.sendFile(path.join(buildPath, "index.html"));
   });
 }
 
@@ -67,9 +63,9 @@ if (process.env.NODE_ENV === "production") {
 // ==========================================
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.stack);
-  
+
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  
+
   res.status(statusCode).json({
     success: false,
     error: err.message || "Internal Server Error",
