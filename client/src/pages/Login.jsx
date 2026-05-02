@@ -30,7 +30,7 @@ export default function Login() {
   useEffect(() => {
     const wakeBackend = async () => {
       try {
-        await fetch("/api/health");
+        await api.get("/health");
         console.log("Backend awake");
       } catch {
         console.log("Waking backend...");

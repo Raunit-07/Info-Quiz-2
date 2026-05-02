@@ -12,7 +12,7 @@ export default function Dashboard() {
 
   /* 🔥 WAKE BACKEND */
   useEffect(() => {
-    fetch("/api/health")
+    api.get("/health")
       .then(() => console.log("Backend awake"))
       .catch(() => console.log("Waking backend..."));
   }, []);

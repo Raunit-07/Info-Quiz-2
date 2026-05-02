@@ -17,7 +17,7 @@ export default function Register() {
 
   /* 🔥 Wake backend */
   useEffect(() => {
-    fetch("/api/health")
+    api.get("/health")
       .then(() => console.log("Backend awake"))
       .catch(() => console.log("Waking backend..."));
   }, []);

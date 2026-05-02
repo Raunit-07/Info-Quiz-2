@@ -1,8 +1,11 @@
 import axios from "axios";
 
+// ✅ PRODUCTION BACKEND URL
+const BACKEND_URL = "https://quiz-backend-yg1i.onrender.com/api";
+
 const api = axios.create({
-  // Use environment variable if available, otherwise fallback to local/relative path
-  baseURL: process.env.REACT_APP_API_URL || "/api",
+  // Priority: 1. Env Var, 2. Hardcoded Production URL, 3. Relative fallback
+  baseURL: process.env.REACT_APP_API_URL || BACKEND_URL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
@@ -24,7 +27,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
+    // Standardize error message extraction
+    const errorMessage = 
+      error.response?.data?.error || 
+      error.response?.data || 
+      error.message || 
+      "Something went wrong";
+
+    console.error("API Error:", errorMessage);
 
     // Auto logout on 401 Unauthorized
     if (error.response?.status === 401) {
