@@ -49,7 +49,7 @@ app.all("/api/*", (req, res) => {
 // ✅ 3. STATIC FILES & SPA FALLBACK (Production Only)
 // ==========================================
 if (process.env.NODE_ENV === "production") {
-  const buildPath = path.join(process.cwd(), "client", "build");
+  const buildPath = path.join(__dirname, "../client/build");
 
   app.use(express.static(buildPath));
 
