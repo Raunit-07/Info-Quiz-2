@@ -134,8 +134,7 @@ export default function Register() {
 
           <button
             className="login-btn"
-            onClick={handleRegister}
-            disabled={loading}
+            onClick={(e) => handleRegister(e)} disabled={loading}
           >
             {loading ? 'Registering...' : 'Register'}
           </button>

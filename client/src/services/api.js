@@ -1,50 +1,45 @@
 import axios from "axios";
 
-// ✅ PRODUCTION BACKEND URL
-const BACKEND_URL = "https://quiz-backend-yg1i.onrender.com/api";
-
+// ✅ FORCE CORRECT BASE URL (NO MISMATCH)
 const api = axios.create({
-  // Priority: 1. Env Var, 2. Hardcoded Production URL, 3. Relative fallback
-  baseURL: process.env.REACT_APP_API_URL || BACKEND_URL,
+  baseURL: process.env.REACT_APP_API_URL || "https://quiz-backend-yg1i.onrender.com/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-export default api;
-
-// 🔐 Attach token to every request
+// 🔐 Attach token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
-// ⚠️ Global error handling for responses
+// ⚠️ Global error handling
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    // Standardize error message extraction
-    const errorMessage = 
-      error.response?.data?.error || 
-      error.response?.data || 
-      error.message || 
+    const errorMessage =
+      error.response?.data?.error ||
+      error.response?.data ||
+      error.message ||
       "Something went wrong";
 
     console.error("API Error:", errorMessage);
 
-    // Auto logout on 401 Unauthorized
+    // 🔒 Auto logout on 401
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      if (window.location.pathname !== "/login") {
-        window.location.replace("/login");
-      }
+      localStorage.clear();
+      window.location.href = "/login";
     }
 
     return Promise.reject(error);
   }
 );
+
+export default api;

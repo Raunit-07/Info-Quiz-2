@@ -64,8 +64,7 @@ export default function Login() {
       }
 
       // ✅ SAVE TOKEN
-      signIn(res.data.token, username);
-
+      signIn(res.data.token, res.data.user?.username || username);
       // ✅ REDIRECT
       navigate("/dashboard");
 
